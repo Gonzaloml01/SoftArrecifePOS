@@ -72,42 +72,41 @@ public class SelectorProductoDialog extends JDialog {
         cardLayout.show(panelCentral, categoria);
     }
 
-    private void mostrarProductos(String categoria, String subcategoria) {
-        JFrame frame = new JFrame("Productos: " + subcategoria);
-        frame.setSize(600, 500);
-        frame.setLocationRelativeTo(this);
-        frame.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 15));
+  private void mostrarProductos(String categoria, String subcategoria) {
+    JDialog dialogoProductos = new JDialog(this, "Productos: " + subcategoria, true);
+    dialogoProductos.setSize(600, 500);
+    dialogoProductos.setLocationRelativeTo(this);
+    dialogoProductos.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 15));
 
-        try (Connection conn = MySQLConnection.getConnection()) {
-            String sql = "SELECT id, nombre, precio FROM productos WHERE categoria_principal = ? AND subcategoria = ?";
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setString(1, categoria);
-            ps.setString(2, subcategoria);
-            ResultSet rs = ps.executeQuery();
+    try (Connection conn = MySQLConnection.getConnection()) {
+        String sql = "SELECT id, nombre, precio FROM productos WHERE categoria_principal = ? AND subcategoria = ?";
+        PreparedStatement ps = conn.prepareStatement(sql);
+        ps.setString(1, categoria);
+        ps.setString(2, subcategoria);
+        ResultSet rs = ps.executeQuery();
 
-            while (rs.next()) {
-                int idProd = rs.getInt("id");
-                String nombre = rs.getString("nombre");
-                double precio = rs.getDouble("precio");
+        while (rs.next()) {
+            int idProd = rs.getInt("id");
+            String nombre = rs.getString("nombre");
+            double precio = rs.getDouble("precio");
 
-                JButton btn = new JButton("<html><center>" + nombre + "<br>$" + precio + "</center></html>");
-                btn.setPreferredSize(new Dimension(140, 70));
-                btn.addActionListener(e -> {
-                    agregarProductoACuenta(idProd, precio);
-                    cuentaFrame.cargarDetalleCuenta();
-                    frame.dispose();
-                    this.dispose();
-                });
+            JButton btn = new JButton("<html><center>" + nombre + "<br>$" + precio + "</center></html>");
+            btn.setPreferredSize(new Dimension(140, 70));
+            btn.addActionListener(e -> {
+                agregarProductoACuenta(idProd, precio);
+                dialogoProductos.dispose(); // Cierra esta ventana
+                this.dispose();             // Cierra el selector de subcategorías
+            });
 
-                frame.add(btn);
-            }
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+            dialogoProductos.add(btn);
         }
 
-        frame.setVisible(true);
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
     }
+
+    dialogoProductos.setVisible(true);
+}
 
     private void agregarProductoACuenta(int productoId, double precio) {
         try (Connection conn = MySQLConnection.getConnection()) {

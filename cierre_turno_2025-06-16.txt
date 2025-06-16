@@ -1,9 +1,9 @@
     --- CIERRE DE TURNO ---
     Usuario: Administrador
-    Inicio: 2025-06-16 14:07:54
+    Inicio: 2025-06-16 14:38:04
     Fondo inicial: $2000.00
-    Ventas: $260.00
+    Ventas: $130.00
     Propinas: $0.00
-    Total en caja: $2260.00
+    Total en caja: $2130.00
     -------------------------
-    Fecha cierre: 2025-06-16T14:08:55.374139800
+    Fecha cierre: 2025-06-16T14:38:40.175300500

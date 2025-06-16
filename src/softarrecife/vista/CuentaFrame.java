@@ -122,38 +122,98 @@ public class CuentaFrame extends JFrame {
         lblTotal.setText("Total: $" + String.format("%.2f", total));
     }
 
-    private void cerrarCuentaEImprimir() {
-        String[] opciones = {"Efectivo", "Tarjeta", "Transferencia"};
-        String metodo = (String) JOptionPane.showInputDialog(this, "Método de pago:",
-                "Cobro", JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
+private void cerrarCuentaEImprimir() {
+    String[] opciones = {"Efectivo", "Tarjeta", "Transferencia"};
+    String metodo = (String) JOptionPane.showInputDialog(this, "Método de pago:",
+            "Cobro", JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
 
-        if (metodo == null) return;
+    if (metodo == null) return;
 
-        double total = calcularTotalCuenta();
+    double total = calcularTotalCuenta();
+    double montoPagado = total;
+    double cambio = 0;
 
-        try (Connection conn = MySQLConnection.getConnection()) {
-            String sql = "UPDATE cuentas SET estado = 'cerrada', metodo_pago = ?, total = ?, fecha_cierre = NOW() WHERE id = ?";
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setString(1, metodo);
-            ps.setDouble(2, total);
-            ps.setInt(3, cuentaId);
-            ps.executeUpdate();
-
-            String liberar = "UPDATE mesas SET estado = 'libre' WHERE id = ?";
-            ps = conn.prepareStatement(liberar);
-            ps.setInt(1, mesaId);
-            ps.executeUpdate();
-
-            JOptionPane.showMessageDialog(this, "Cuenta cerrada con éxito.");
-
-            dispose();
-            if (comedorFrame != null) {
-                comedorFrame.cargarMesas();
-            }
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error al cerrar cuenta: " + e.getMessage());
+    if (metodo.equals("Efectivo")) {
+        String pagadoStr = JOptionPane.showInputDialog(this, "¿Con cuánto pagó el cliente?");
+        if (pagadoStr == null) return;
+        try {
+            montoPagado = Double.parseDouble(pagadoStr);
+            cambio = montoPagado - total;
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Monto inválido.");
+            return;
         }
     }
+
+    // Preguntar propina
+    String[] tipoPropina = {"% Porcentaje", "$ Monto fijo", "Sin propina"};
+    int opcionPropina = JOptionPane.showOptionDialog(this, "¿El cliente dejó propina?",
+            "Propina", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+            tipoPropina, tipoPropina[0]);
+
+    double propina = 0;
+    if (opcionPropina == 0) {
+        String propinaStr = JOptionPane.showInputDialog(this, "¿Qué porcentaje dejó?");
+        if (propinaStr != null) {
+            try {
+                double porcentaje = Double.parseDouble(propinaStr);
+                propina = total * (porcentaje / 100);
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "Porcentaje inválido.");
+            }
+        }
+    } else if (opcionPropina == 1) {
+        String propinaStr = JOptionPane.showInputDialog(this, "¿Cuánto dejó de propina?");
+        if (propinaStr != null) {
+            try {
+                propina = Double.parseDouble(propinaStr);
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "Monto inválido.");
+            }
+        }
+    }
+
+    try (Connection conn = MySQLConnection.getConnection()) {
+        String sql = "UPDATE cuentas SET estado = 'cerrada', metodo_pago = ?, total = ?, propina = ?, fecha_cierre = NOW() WHERE id = ?";
+        PreparedStatement ps = conn.prepareStatement(sql);
+        ps.setString(1, metodo);
+        ps.setDouble(2, total);
+        ps.setDouble(3, propina);
+        ps.setInt(4, cuentaId);
+        ps.executeUpdate();
+
+        String liberar = "UPDATE mesas SET estado = 'libre' WHERE id = ?";
+        ps = conn.prepareStatement(liberar);
+        ps.setInt(1, mesaId);
+        ps.executeUpdate();
+
+        // Mostrar resumen
+        String resumen = """
+                --- Ticket Final ---
+                Método de pago: %s
+                Total: $%.2f
+                Propina: $%.2f
+                Monto pagado: $%.2f
+                Cambio: $%.2f
+                ---------------------
+                ¡Gracias por su visita!
+                """.formatted(metodo, total, propina, montoPagado, cambio);
+
+        JTextArea text = new JTextArea(resumen);
+        text.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        text.setEditable(false);
+        JOptionPane.showMessageDialog(this, new JScrollPane(text), "Resumen de cuenta", JOptionPane.INFORMATION_MESSAGE);
+
+        dispose();
+        if (comedorFrame != null) {
+            comedorFrame.cargarMesas();
+        }
+
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this, "Error al cerrar cuenta: " + e.getMessage());
+    }
+}
+
 
     private double calcularTotalCuenta() {
         double total = 0;
