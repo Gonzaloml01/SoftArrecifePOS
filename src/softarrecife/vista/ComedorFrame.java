@@ -1,5 +1,4 @@
 // ComedorFrame.java - Vista principal de mesas con botones de gestión
-
 package softarrecife.vista;
 
 import softarrecife.conexion.MySQLConnection;
@@ -10,6 +9,7 @@ import java.awt.event.*;
 import java.sql.*;
 
 public class ComedorFrame extends JFrame {
+
     private JPanel panelMesas;
 
     public ComedorFrame() {
@@ -92,12 +92,17 @@ public class ComedorFrame extends JFrame {
         }
     }
 
+    // Fragmento corregido para JPopupMenu al hacer clic derecho en una mesa
     private JPopupMenu crearMenuContextual(int id, String nombre) {
         JPopupMenu menu = new JPopupMenu();
 
-        JMenuItem eliminar = new JMenuItem("Eliminar mesa");
-        eliminar.addActionListener(e -> eliminarMesa(id));
-        menu.add(eliminar);
+        JMenuItem itemCerrarCuenta = new JMenuItem("Cerrar cuenta");
+        itemCerrarCuenta.addActionListener(e -> verificarCierreDesdeContextual(id));
+        menu.add(itemCerrarCuenta);
+
+        JMenuItem itemRenombrar = new JMenuItem("Renombrar mesa");
+        itemRenombrar.addActionListener(e -> renombrarMesa(id, nombre));
+        menu.add(itemRenombrar);
 
         return menu;
     }
@@ -116,4 +121,73 @@ public class ComedorFrame extends JFrame {
             }
         }
     }
+
+    private void verificarCierreDesdeContextual(int mesaId) {
+        try (Connection conn = MySQLConnection.getConnection()) {
+            // Verifica si hay cuenta abierta
+            String sqlCuenta = "SELECT id FROM cuentas WHERE mesa_id = ? AND estado = 'abierta'";
+            PreparedStatement psCuenta = conn.prepareStatement(sqlCuenta);
+            psCuenta.setInt(1, mesaId);
+            ResultSet rsCuenta = psCuenta.executeQuery();
+
+            if (rsCuenta.next()) {
+                int cuentaId = rsCuenta.getInt("id");
+
+                // Verifica si hay productos en la cuenta
+                String sqlDetalle = "SELECT p.nombre, dc.cantidad FROM detalle_cuenta dc JOIN productos p ON dc.producto_id = p.id WHERE cuenta_id = ?";
+                PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle);
+                psDetalle.setInt(1, cuentaId);
+                ResultSet rsDetalle = psDetalle.executeQuery();
+
+                StringBuilder productosList = new StringBuilder();
+                while (rsDetalle.next()) {
+                    productosList.append("- ")
+                            .append(rsDetalle.getString("nombre"))
+                            .append(" x")
+                            .append(rsDetalle.getInt("cantidad"))
+                            .append("\n");
+                }
+
+                if (productosList.length() > 0) {
+                    JOptionPane.showMessageDialog(this,
+                            "Esta mesa tiene productos activos.\n"
+                            + "Debes cerrar y cobrar la cuenta desde el botón principal.\n\nProductos:\n"
+                            + productosList.toString(),
+                            "Cuenta con productos", JOptionPane.WARNING_MESSAGE);
+                    return;
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "La cuenta está vacía, puedes cerrarla desde el botón principal.",
+                            "Cuenta vacía", JOptionPane.INFORMATION_MESSAGE);
+                }
+
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "No hay cuenta activa en esta mesa.",
+                        "Sin cuenta", JOptionPane.INFORMATION_MESSAGE);
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Error al verificar cuenta: " + e.getMessage(),
+                    "Error de conexión", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void renombrarMesa(int mesaId, String nombreActual) {
+        String nuevoNombre = JOptionPane.showInputDialog(this, "Nuevo nombre para la mesa:", nombreActual);
+        if (nuevoNombre != null && !nuevoNombre.trim().isEmpty()) {
+            try (Connection conn = MySQLConnection.getConnection()) {
+                String sql = "UPDATE mesas SET nombre = ? WHERE id = ?";
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ps.setString(1, nuevoNombre);
+                ps.setInt(2, mesaId);
+                ps.executeUpdate();
+                cargarMesas();
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Error al renombrar mesa: " + e.getMessage());
+            }
+        }
+    }
+
 }

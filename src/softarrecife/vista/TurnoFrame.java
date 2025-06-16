@@ -78,6 +78,7 @@ public class TurnoFrame extends JFrame {
             ps.setDouble(2, fondo);
             ps.executeUpdate();
             JOptionPane.showMessageDialog(this, "Turno abierto correctamente.");
+            dispose(); // 👉 Esto cierra la ventana de TurnoFrame
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
         }
