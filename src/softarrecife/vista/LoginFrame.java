@@ -46,13 +46,14 @@ public class LoginFrame extends JFrame {
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
-                // ✅ Guardar datos en sesión
+                // Guardar en sesión
                 Sesion.usuarioId = rs.getInt("id");
                 Sesion.nombre = rs.getString("nombre");
+                Sesion.tipo = rs.getString("tipo");
 
                 JOptionPane.showMessageDialog(this, "¡Bienvenido, " + Sesion.nombre + "!");
                 dispose();
-                new MenuPrincipalFrame(Sesion.nombre);
+                new MenuPrincipalFrame(Sesion.usuarioId, Sesion.nombre, Sesion.tipo);
 
             } else {
                 JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos");

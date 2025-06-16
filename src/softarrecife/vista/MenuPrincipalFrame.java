@@ -1,10 +1,10 @@
 package softarrecife.vista;
 
-import softarrecife.conexion.MySQLConnection;
-import softarrecife.modelo.Sesion;
-
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import softarrecife.conexion.MySQLConnection;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,15 +12,21 @@ import java.sql.SQLException;
 
 public class MenuPrincipalFrame extends JFrame {
 
-    public MenuPrincipalFrame(String nombreUsuario) {
+    private int usuarioId;
+    private String nombreUsuario;
+    private String tipoUsuario;
+
+    public MenuPrincipalFrame(int usuarioId, String nombreUsuario, String tipoUsuario) {
+        this.usuarioId = usuarioId;
+        this.nombreUsuario = nombreUsuario;
+        this.tipoUsuario = tipoUsuario;
+
         setTitle("Menú Principal - Bienvenido " + nombreUsuario);
         setSize(800, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
-        setLayout(new GridLayout(3, 2, 20, 20));
 
-        JPanel panelBotones = new JPanel(new GridLayout(3, 2, 10, 10));
-        add(panelBotones);
+        JPanel panelBotones = new JPanel(new GridLayout(3, 2, 20, 20));
 
         JButton btnTurno = new JButton("🔓 Abrir/Cerrar Turno");
         JButton btnComedor = new JButton("🍽️ Ir al Comedor");
@@ -28,34 +34,47 @@ public class MenuPrincipalFrame extends JFrame {
         JButton btnReportes = new JButton("📊 Reportes");
         JButton btnSalir = new JButton("🚪 Cerrar Sesión");
 
-        btnTurno.addActionListener(e -> new TurnoFrame(Sesion.usuarioId));
+        btnTurno.addActionListener(e -> new TurnoFrame(usuarioId));
 
         btnComedor.addActionListener(e -> {
-            if (!hayTurnoAbierto(Sesion.usuarioId)) {
+            if (!hayTurnoAbierto(usuarioId)) {
                 JOptionPane.showMessageDialog(this, "Debes abrir un turno antes de usar el comedor.");
             } else {
-                new ComedorFrame();
+                new NIPMeseroDialog(this);
             }
         });
 
         btnProductos.addActionListener(e -> new GestionProductosFrame());
-
         btnReportes.addActionListener(e -> new ReportesFrame());
 
         btnSalir.addActionListener(e -> {
-            if (hayTurnoAbierto(Sesion.usuarioId)) {
-                JOptionPane.showMessageDialog(this, "No puedes cerrar sesión con un turno abierto. Cierra el turno primero.");
+            if (hayTurnoAbierto(usuarioId)) {
+                JOptionPane.showMessageDialog(this, "Debes cerrar el turno antes de cerrar sesión.");
             } else {
                 dispose();
                 new LoginFrame();
             }
         });
 
+        // Agregar botones según tipo de usuario
         panelBotones.add(btnTurno);
         panelBotones.add(btnComedor);
-        panelBotones.add(btnProductos);
-        panelBotones.add(btnReportes);
+
+        if (tipoUsuario.equals("admin")) {
+            panelBotones.add(btnProductos);
+            panelBotones.add(btnReportes);
+        }
+
         panelBotones.add(btnSalir);
+        add(panelBotones);
+
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {  
+                    dispose();
+                    new LoginFrame();
+            }
+        });
 
         setVisible(true);
     }
@@ -73,4 +92,4 @@ public class MenuPrincipalFrame extends JFrame {
             return false;
         }
     }
-} 
+}

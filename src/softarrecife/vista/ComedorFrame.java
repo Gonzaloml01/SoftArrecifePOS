@@ -1,4 +1,3 @@
-// ComedorFrame.java - Vista principal de mesas con botones de gestión
 package softarrecife.vista;
 
 import softarrecife.conexion.MySQLConnection;
@@ -11,31 +10,32 @@ import java.sql.*;
 public class ComedorFrame extends JFrame {
 
     private JPanel panelMesas;
+    private boolean esAdmin;
+    private int usuarioId;
+    private String nombreMesero;
 
-    public ComedorFrame() {
-        setTitle("Comedor");
+    public ComedorFrame(boolean esAdmin, int usuarioId, String nombreMesero) {
+        this.esAdmin = esAdmin;
+        this.usuarioId = usuarioId;
+        this.nombreMesero = nombreMesero;
+
+        setTitle("Comedor - " + (esAdmin ? "Administrador" : "Mesero: " + nombreMesero));
         setSize(800, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Panel superior con botones
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton btnAgregar = new JButton("➕ Agregar mesa");
         btnAgregar.addActionListener(e -> agregarMesa());
         panelBotones.add(btnAgregar);
-
         add(panelBotones, BorderLayout.NORTH);
 
-        // Panel de mesas
-        panelMesas = new JPanel();
-        panelMesas.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
-
+        panelMesas = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         JScrollPane scroll = new JScrollPane(panelMesas);
         add(scroll, BorderLayout.CENTER);
 
         cargarMesas();
-
         setVisible(true);
     }
 
@@ -43,8 +43,19 @@ public class ComedorFrame extends JFrame {
         panelMesas.removeAll();
 
         try (Connection conn = MySQLConnection.getConnection()) {
-            String sql = "SELECT * FROM mesas WHERE estado = 'ocupada'";
+            String sql = "SELECT m.* FROM mesas m "
+                       + "JOIN cuentas c ON m.id = c.mesa_id "
+                       + "WHERE c.estado = 'abierta'";
+
+            if (!esAdmin) {
+                sql += " AND c.usuario_id = ?";
+            }
+
             PreparedStatement ps = conn.prepareStatement(sql);
+            if (!esAdmin) {
+                ps.setInt(1, usuarioId);
+            }
+
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
@@ -92,7 +103,6 @@ public class ComedorFrame extends JFrame {
         }
     }
 
-    // Fragmento corregido para JPopupMenu al hacer clic derecho en una mesa
     private JPopupMenu crearMenuContextual(int id, String nombre) {
         JPopupMenu menu = new JPopupMenu();
 
@@ -107,24 +117,8 @@ public class ComedorFrame extends JFrame {
         return menu;
     }
 
-    private void eliminarMesa(int id) {
-        int confirm = JOptionPane.showConfirmDialog(this, "¿Eliminar esta mesa?", "Confirmar", JOptionPane.YES_NO_OPTION);
-        if (confirm == JOptionPane.YES_OPTION) {
-            try (Connection conn = MySQLConnection.getConnection()) {
-                String sql = "DELETE FROM mesas WHERE id = ?";
-                PreparedStatement ps = conn.prepareStatement(sql);
-                ps.setInt(1, id);
-                ps.executeUpdate();
-                cargarMesas();
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error al eliminar mesa: " + e.getMessage());
-            }
-        }
-    }
-
     private void verificarCierreDesdeContextual(int mesaId) {
         try (Connection conn = MySQLConnection.getConnection()) {
-            // Verifica si hay cuenta abierta
             String sqlCuenta = "SELECT id FROM cuentas WHERE mesa_id = ? AND estado = 'abierta'";
             PreparedStatement psCuenta = conn.prepareStatement(sqlCuenta);
             psCuenta.setInt(1, mesaId);
@@ -133,7 +127,6 @@ public class ComedorFrame extends JFrame {
             if (rsCuenta.next()) {
                 int cuentaId = rsCuenta.getInt("id");
 
-                // Verifica si hay productos en la cuenta
                 String sqlDetalle = "SELECT p.nombre, dc.cantidad FROM detalle_cuenta dc JOIN productos p ON dc.producto_id = p.id WHERE cuenta_id = ?";
                 PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle);
                 psDetalle.setInt(1, cuentaId);
@@ -154,7 +147,6 @@ public class ComedorFrame extends JFrame {
                             + "Debes cerrar y cobrar la cuenta desde el botón principal.\n\nProductos:\n"
                             + productosList.toString(),
                             "Cuenta con productos", JOptionPane.WARNING_MESSAGE);
-                    return;
                 } else {
                     JOptionPane.showMessageDialog(this,
                             "La cuenta está vacía, puedes cerrarla desde el botón principal.",
@@ -189,5 +181,4 @@ public class ComedorFrame extends JFrame {
             }
         }
     }
-
 }
