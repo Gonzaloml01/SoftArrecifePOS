@@ -38,6 +38,12 @@ public class ComedorFrame extends JFrame {
         cargarMesas();
 
         setVisible(true);
+
+// Forzar al frente
+        setAlwaysOnTop(true);
+        toFront();
+        requestFocus();
+        setAlwaysOnTop(false);
     }
 
     public int getUsuarioId() {
@@ -122,65 +128,64 @@ public class ComedorFrame extends JFrame {
     }
 
     private void verificarCierreDesdeContextual(int mesaId) {
-    try (Connection conn = MySQLConnection.getConnection()) {
-        String sqlCuenta = "SELECT id FROM cuentas WHERE mesa_id = ? AND estado = 'abierta'";
-        PreparedStatement psCuenta = conn.prepareStatement(sqlCuenta);
-        psCuenta.setInt(1, mesaId);
-        ResultSet rsCuenta = psCuenta.executeQuery();
+        try (Connection conn = MySQLConnection.getConnection()) {
+            String sqlCuenta = "SELECT id FROM cuentas WHERE mesa_id = ? AND estado = 'abierta'";
+            PreparedStatement psCuenta = conn.prepareStatement(sqlCuenta);
+            psCuenta.setInt(1, mesaId);
+            ResultSet rsCuenta = psCuenta.executeQuery();
 
-        if (rsCuenta.next()) {
-            int cuentaId = rsCuenta.getInt("id");
+            if (rsCuenta.next()) {
+                int cuentaId = rsCuenta.getInt("id");
 
-            String sqlDetalle = """
+                String sqlDetalle = """
                 SELECT COUNT(*) FROM detalle_cuenta WHERE cuenta_id = ?
             """;
-            PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle);
-            psDetalle.setInt(1, cuentaId);
-            ResultSet rsDetalle = psDetalle.executeQuery();
-            rsDetalle.next();
-            int totalProductos = rsDetalle.getInt(1);
+                PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle);
+                psDetalle.setInt(1, cuentaId);
+                ResultSet rsDetalle = psDetalle.executeQuery();
+                rsDetalle.next();
+                int totalProductos = rsDetalle.getInt(1);
 
-            if (totalProductos > 0) {
+                if (totalProductos > 0) {
+                    JOptionPane.showMessageDialog(this,
+                            "Esta mesa tiene productos activos.\nDebes cerrar y cobrar la cuenta desde el botón principal.",
+                            "Cuenta con productos", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                // Eliminar la cuenta vacía
+                PreparedStatement psEliminarCuenta = conn.prepareStatement("DELETE FROM cuentas WHERE id = ?");
+                psEliminarCuenta.setInt(1, cuentaId);
+                psEliminarCuenta.executeUpdate();
+
+                // Eliminar la mesa
+                PreparedStatement psEliminarMesa = conn.prepareStatement("DELETE FROM mesas WHERE id = ?");
+                psEliminarMesa.setInt(1, mesaId);
+                psEliminarMesa.executeUpdate();
+
                 JOptionPane.showMessageDialog(this,
-                        "Esta mesa tiene productos activos.\nDebes cerrar y cobrar la cuenta desde el botón principal.",
-                        "Cuenta con productos", JOptionPane.WARNING_MESSAGE);
-                return;
+                        "La cuenta estaba vacía. Mesa eliminada exitosamente.",
+                        "Mesa eliminada", JOptionPane.INFORMATION_MESSAGE);
+
+            } else {
+                // Ya no hay cuenta activa (ya fue cerrada y mesa liberada)
+                PreparedStatement psEliminarMesa = conn.prepareStatement("DELETE FROM mesas WHERE id = ?");
+                psEliminarMesa.setInt(1, mesaId);
+                psEliminarMesa.executeUpdate();
+
+                JOptionPane.showMessageDialog(this,
+                        "La cuenta ya estaba cerrada. La mesa fue eliminada.",
+                        "Mesa eliminada", JOptionPane.INFORMATION_MESSAGE);
             }
 
-            // Eliminar la cuenta vacía
-            PreparedStatement psEliminarCuenta = conn.prepareStatement("DELETE FROM cuentas WHERE id = ?");
-            psEliminarCuenta.setInt(1, cuentaId);
-            psEliminarCuenta.executeUpdate();
+            cargarMesas(); // refrescar vista
 
-            // Eliminar la mesa
-            PreparedStatement psEliminarMesa = conn.prepareStatement("DELETE FROM mesas WHERE id = ?");
-            psEliminarMesa.setInt(1, mesaId);
-            psEliminarMesa.executeUpdate();
-
+        } catch (SQLException e) {
             JOptionPane.showMessageDialog(this,
-                    "La cuenta estaba vacía. Mesa eliminada exitosamente.",
-                    "Mesa eliminada", JOptionPane.INFORMATION_MESSAGE);
-
-        } else {
-            // Ya no hay cuenta activa (ya fue cerrada y mesa liberada)
-            PreparedStatement psEliminarMesa = conn.prepareStatement("DELETE FROM mesas WHERE id = ?");
-            psEliminarMesa.setInt(1, mesaId);
-            psEliminarMesa.executeUpdate();
-
-            JOptionPane.showMessageDialog(this,
-                    "La cuenta ya estaba cerrada. La mesa fue eliminada.",
-                    "Mesa eliminada", JOptionPane.INFORMATION_MESSAGE);
+                    "Error al verificar cuenta: " + e.getMessage(),
+                    "Error de conexión", JOptionPane.ERROR_MESSAGE);
         }
-
-        cargarMesas(); // refrescar vista
-
-    } catch (SQLException e) {
-        JOptionPane.showMessageDialog(this,
-                "Error al verificar cuenta: " + e.getMessage(),
-                "Error de conexión", JOptionPane.ERROR_MESSAGE);
     }
-}
-
 
     private void renombrarMesa(int mesaId, String nombreActual) {
         String nuevoNombre = JOptionPane.showInputDialog(this, "Nuevo nombre para la mesa:", nombreActual);

@@ -35,11 +35,18 @@ public class NIPMeseroDialog extends JDialog {
                     String nombre = rs.getString("nombre");
                     String tipo = rs.getString("tipo");
 
-                    ComedorFrame comedor = new ComedorFrame(usuarioId, nombre, tipo);
-                    comedor.setVisible(true);
-                    comedor.toFront();
+                    dispose(); // Cerrar primero el diálogo
 
-                    dispose();
+                    javax.swing.Timer timer = new javax.swing.Timer(100, e2 -> {
+                        ComedorFrame comedor = new ComedorFrame(usuarioId, nombre, tipo);
+                        comedor.setVisible(true);
+                        comedor.setAlwaysOnTop(true);
+                        comedor.toFront();
+                        comedor.requestFocus();
+                        comedor.setAlwaysOnTop(false);
+                    });
+                    timer.setRepeats(false);
+                    timer.start();
                 } else {
                     JOptionPane.showMessageDialog(this, "NIP incorrecto");
                 }

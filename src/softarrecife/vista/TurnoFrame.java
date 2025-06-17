@@ -186,7 +186,6 @@ public class TurnoFrame extends JFrame {
             }
 
             dispose();
-            System.exit(0);
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error SQL: " + e.getMessage());
         }
