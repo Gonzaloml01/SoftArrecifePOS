@@ -86,6 +86,8 @@ public class SelectorProductoDialog extends JDialog {
         ResultSet rs = ps.executeQuery();
 
         while (rs.next()) {
+            dialogoProductos.revalidate();
+dialogoProductos.repaint();
             int idProd = rs.getInt("id");
             String nombre = rs.getString("nombre");
             double precio = rs.getDouble("precio");

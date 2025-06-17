@@ -24,6 +24,7 @@ public class CuentaFrame extends JFrame {
         this.mesaNombre = mesaNombre;
         this.comedorFrame = comedorFrame;
 
+        crearCuentaSiNoExiste();
         setTitle("Cuenta - " + mesaNombre + " (Atiende: " + obtenerNombreMesero() + ")");
         setSize(600, 500);
         setLocationRelativeTo(null);
@@ -34,6 +35,26 @@ public class CuentaFrame extends JFrame {
         construirUI();
         cargarDetalleCuenta();
         setVisible(true);
+    }
+
+    private String obtenerNombreMesero() {
+        try (Connection conn = MySQLConnection.getConnection()) {
+            String sql = """
+            SELECT u.nombre 
+            FROM cuentas c
+            JOIN usuarios u ON c.usuario_id = u.id
+            WHERE c.id = ?
+        """;
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, cuentaId);  // <-- cuentaId debe existir
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getString("nombre");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "Desconocido";
     }
 
     private void construirUI() {
@@ -66,18 +87,19 @@ public class CuentaFrame extends JFrame {
     private void crearCuentaSiNoExiste() {
         try (Connection conn = MySQLConnection.getConnection()) {
             String check = "SELECT id FROM cuentas WHERE mesa_id = ? AND estado = 'abierta'";
-            PreparedStatement ps = conn.prepareStatement(check);
-            ps.setInt(1, mesaId);
-            ResultSet rs = ps.executeQuery();
+            PreparedStatement psCheck = conn.prepareStatement(check);
+            psCheck.setInt(1, mesaId);
+            ResultSet rs = psCheck.executeQuery();
 
             if (rs.next()) {
                 cuentaId = rs.getInt("id");
             } else {
-                String insert = "INSERT INTO cuentas (mesa_id, estado, total, fecha) VALUES (?, 'abierta', 0, NOW())";
-                ps = conn.prepareStatement(insert, Statement.RETURN_GENERATED_KEYS);
-                ps.setInt(1, mesaId);
-                ps.executeUpdate();
-                rs = ps.getGeneratedKeys();
+                String insert = "INSERT INTO cuentas (mesa_id, usuario_id, estado, total, fecha) VALUES (?, ?, 'abierta', 0, NOW())";
+                PreparedStatement psInsert = conn.prepareStatement(insert, Statement.RETURN_GENERATED_KEYS);
+                psInsert.setInt(1, mesaId);
+                psInsert.setInt(2, comedorFrame.getUsuarioId());
+                psInsert.executeUpdate();
+                rs = psInsert.getGeneratedKeys();
                 if (rs.next()) {
                     cuentaId = rs.getInt(1);
                 }
@@ -85,25 +107,6 @@ public class CuentaFrame extends JFrame {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    }
-
-    private String obtenerNombreMesero() {
-        try (Connection conn = MySQLConnection.getConnection()) {
-            String sql = """
-            SELECT u.nombre FROM cuentas c
-            JOIN usuarios u ON c.usuario_id = u.id
-            WHERE c.id = ?
-        """;
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setInt(1, cuentaId);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getString("nombre");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return "Desconocido";
     }
 
     public void cargarDetalleCuenta() {
