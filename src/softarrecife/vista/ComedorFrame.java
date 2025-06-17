@@ -6,6 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
+import softarrecife.utils.WrapLayout;
 
 public class ComedorFrame extends JFrame {
 
@@ -19,27 +20,43 @@ public class ComedorFrame extends JFrame {
         this.nombreMesero = nombreMesero;
         this.tipoUsuario = tipoUsuario;
 
-        setTitle("Comedor - Mesero: " + nombreMesero);
-        setSize(800, 600);
+        setTitle("Summa POS - Comedor de " + nombreMesero);
+        setSize(900, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
+        Color fondo = new Color(245, 245, 245);
+        Color primario = new Color(30, 144, 255);
+        Font fuente = new Font("SansSerif", Font.PLAIN, 14);
+
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panelBotones.setBackground(fondo);
+
         JButton btnAgregar = new JButton("➕ Agregar mesa");
-        btnAgregar.addActionListener(e -> agregarMesa());
+        btnAgregar.setFocusPainted(false);
+        btnAgregar.setBackground(primario);
+        btnAgregar.setForeground(Color.WHITE);
+        btnAgregar.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btnAgregar.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+
         panelBotones.add(btnAgregar);
         add(panelBotones, BorderLayout.NORTH);
 
-        panelMesas = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        btnAgregar.addActionListener(e -> agregarMesa());
+
+        panelMesas = new JPanel(new WrapLayout(FlowLayout.LEFT, 12, 12));
+        panelMesas.setBackground(fondo);
+
         JScrollPane scroll = new JScrollPane(panelMesas);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
         add(scroll, BorderLayout.CENTER);
 
         cargarMesas();
 
         setVisible(true);
 
-// Forzar al frente
+        // Forzar al frente
         setAlwaysOnTop(true);
         toFront();
         requestFocus();
@@ -72,7 +89,11 @@ public class ComedorFrame extends JFrame {
                 String nombre = rs.getString("nombre");
 
                 JButton mesaBtn = new JButton(nombre);
-                mesaBtn.setPreferredSize(new Dimension(120, 80));
+                mesaBtn.setPreferredSize(new Dimension(130, 80));
+                mesaBtn.setBackground(Color.WHITE);
+                mesaBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
+                mesaBtn.setFocusPainted(false);
+                mesaBtn.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
 
                 mesaBtn.addMouseListener(new MouseAdapter() {
                     @Override
@@ -104,7 +125,7 @@ public class ComedorFrame extends JFrame {
                 String sql = "INSERT INTO mesas (nombre, estado, usuario_id) VALUES (?, 'ocupada', ?)";
                 PreparedStatement ps = conn.prepareStatement(sql);
                 ps.setString(1, nombre.trim());
-                ps.setInt(2, usuarioId);  // Asegúrate que usuarioId esté disponible en la clase
+                ps.setInt(2, usuarioId);
                 ps.executeUpdate();
                 cargarMesas();
             } catch (SQLException e) {
@@ -137,9 +158,7 @@ public class ComedorFrame extends JFrame {
             if (rsCuenta.next()) {
                 int cuentaId = rsCuenta.getInt("id");
 
-                String sqlDetalle = """
-                SELECT COUNT(*) FROM detalle_cuenta WHERE cuenta_id = ?
-            """;
+                String sqlDetalle = "SELECT COUNT(*) FROM detalle_cuenta WHERE cuenta_id = ?";
                 PreparedStatement psDetalle = conn.prepareStatement(sqlDetalle);
                 psDetalle.setInt(1, cuentaId);
                 ResultSet rsDetalle = psDetalle.executeQuery();
@@ -153,12 +172,10 @@ public class ComedorFrame extends JFrame {
                     return;
                 }
 
-                // Eliminar la cuenta vacía
                 PreparedStatement psEliminarCuenta = conn.prepareStatement("DELETE FROM cuentas WHERE id = ?");
                 psEliminarCuenta.setInt(1, cuentaId);
                 psEliminarCuenta.executeUpdate();
 
-                // Eliminar la mesa
                 PreparedStatement psEliminarMesa = conn.prepareStatement("DELETE FROM mesas WHERE id = ?");
                 psEliminarMesa.setInt(1, mesaId);
                 psEliminarMesa.executeUpdate();
@@ -168,7 +185,6 @@ public class ComedorFrame extends JFrame {
                         "Mesa eliminada", JOptionPane.INFORMATION_MESSAGE);
 
             } else {
-                // Ya no hay cuenta activa (ya fue cerrada y mesa liberada)
                 PreparedStatement psEliminarMesa = conn.prepareStatement("DELETE FROM mesas WHERE id = ?");
                 psEliminarMesa.setInt(1, mesaId);
                 psEliminarMesa.executeUpdate();
@@ -178,7 +194,7 @@ public class ComedorFrame extends JFrame {
                         "Mesa eliminada", JOptionPane.INFORMATION_MESSAGE);
             }
 
-            cargarMesas(); // refrescar vista
+            cargarMesas();
 
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this,

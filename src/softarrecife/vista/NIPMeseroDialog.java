@@ -10,19 +10,49 @@ public class NIPMeseroDialog extends JDialog {
 
     public NIPMeseroDialog(JFrame parent) {
         super(parent, "Ingresar NIP", true);
-        setSize(300, 150);
+        setSize(320, 180);
         setLocationRelativeTo(parent);
+        setLayout(new BorderLayout());
 
-        JTextField txtNip = new JPasswordField();
-        JButton btnAceptar = new JButton("Aceptar");
+        Color fondo = new Color(250, 250, 250);
+        Color primario = new Color(30, 144, 255);
+        Color texto = new Color(60, 60, 60);
 
-        setLayout(new GridLayout(3, 1));
-        add(new JLabel("Ingrese su NIP:"));
-        add(txtNip);
-        add(btnAceptar);
+        JPanel panel = new JPanel();
+        panel.setBackground(fondo);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+        JTextField txtNip = new JTextField();
+        txtNip.setPreferredSize(new Dimension(250, 36));
+        txtNip.setMaximumSize(new Dimension(250, 36));
+        txtNip.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        txtNip.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        txtNip.setForeground(texto);
+        txtNip.setToolTipText("Ingresa tu NIP");
+        txtNip.putClientProperty("JTextField.placeholderText", "Ingresa tu NIP");
+
+        JButton btnAceptar = new JButton("Ingresar");
+        btnAceptar.setFocusPainted(false);
+        btnAceptar.setBackground(primario);
+        btnAceptar.setForeground(Color.WHITE);
+        btnAceptar.setFont(new Font("SansSerif", Font.BOLD, 14));
+        btnAceptar.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnAceptar.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+
+        panel.add(Box.createVerticalGlue());
+        panel.add(txtNip);
+        panel.add(Box.createRigidArea(new Dimension(0, 15)));
+        panel.add(btnAceptar);
+        panel.add(Box.createVerticalGlue());
+
+        add(panel, BorderLayout.CENTER);
 
         btnAceptar.addActionListener(e -> {
-            String nip = txtNip.getText();
+            String nip = txtNip.getText().trim();
 
             try (Connection conn = MySQLConnection.getConnection()) {
                 String sql = "SELECT id, nombre, tipo FROM usuarios WHERE nip = ?";
@@ -35,7 +65,7 @@ public class NIPMeseroDialog extends JDialog {
                     String nombre = rs.getString("nombre");
                     String tipo = rs.getString("tipo");
 
-                    dispose(); // Cerrar primero el diálogo
+                    dispose();
 
                     javax.swing.Timer timer = new javax.swing.Timer(100, e2 -> {
                         ComedorFrame comedor = new ComedorFrame(usuarioId, nombre, tipo);
@@ -56,6 +86,7 @@ public class NIPMeseroDialog extends JDialog {
             }
         });
 
+        getContentPane().setBackground(fondo);
         setVisible(true);
     }
 }

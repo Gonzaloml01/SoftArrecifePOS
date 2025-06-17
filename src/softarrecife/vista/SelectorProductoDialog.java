@@ -1,13 +1,15 @@
 package softarrecife.vista;
 
 import softarrecife.conexion.MySQLConnection;
-
+import softarrecife.utils.Estilos;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
 
 public class SelectorProductoDialog extends JDialog {
+
     private int cuentaId;
     private CuentaFrame cuentaFrame;
     private JPanel panelCentral;
@@ -20,11 +22,17 @@ public class SelectorProductoDialog extends JDialog {
         setSize(800, 600);
         setLocationRelativeTo(cuentaFrame);
         setLayout(new BorderLayout());
+        getContentPane().setBackground(Estilos.grisClaro
+        );
 
-        JPanel panelCategorias = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel panelCategorias = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        panelCategorias.setBorder(new EmptyBorder(10, 10, 10, 10));
+        panelCategorias.setBackground(Estilos.grisClaro
+        );
+
         String[] categorias = {"Bebidas", "Comida", "Postres", "Extras"};
         for (String cat : categorias) {
-            JButton btn = new JButton(cat);
+            JButton btn = Estilos.crearBotonPrincipal(cat);
             btn.addActionListener(e -> mostrarSubcategorias(cat));
             panelCategorias.add(btn);
         }
@@ -33,6 +41,7 @@ public class SelectorProductoDialog extends JDialog {
         panelCentral = new JPanel();
         cardLayout = new CardLayout();
         panelCentral.setLayout(cardLayout);
+        panelCentral.setBackground(Color.WHITE);
         add(panelCentral, BorderLayout.CENTER);
 
         crearPanelSubcategorias();
@@ -41,27 +50,30 @@ public class SelectorProductoDialog extends JDialog {
 
     private void crearPanelSubcategorias() {
         panelCentral.add(crearPanel("Bebidas", new String[]{
-                "Litros preparados", "Cocteles en copa", "Shots", "Cerveza",
-                "Refrescos", "Jugos naturales", "Smoothies", "Limonadas / Naranjadas"
+            "Litros preparados", "Cocteles en copa", "Shots", "Cerveza",
+            "Refrescos", "Jugos naturales", "Smoothies", "Limonadas / Naranjadas"
         }), "Bebidas");
 
         panelCentral.add(crearPanel("Comida", new String[]{
-                "Mariscos", "Antojitos / Tacos", "Hamburguesas", "Botanas", "Ceviches / Tostadas"
+            "Mariscos", "Antojitos / Tacos", "Hamburguesas", "Botanas", "Ceviches / Tostadas"
         }), "Comida");
 
         panelCentral.add(crearPanel("Postres", new String[]{
-                "Pasteles", "Helados / Nieves", "Malteadas dulces"
+            "Pasteles", "Helados / Nieves", "Malteadas dulces"
         }), "Postres");
 
         panelCentral.add(crearPanel("Extras", new String[]{
-                "Promociones", "Desayunos", "Eventos especiales"
+            "Promociones", "Desayunos", "Eventos especiales"
         }), "Extras");
     }
 
     private JPanel crearPanel(String categoria, String[] subcategorias) {
-        JPanel panel = new JPanel(new GridLayout(0, 3, 10, 10));
+        JPanel panel = new JPanel(new GridLayout(0, 3, 12, 12));
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        panel.setBackground(Color.WHITE);
+
         for (String sub : subcategorias) {
-            JButton btn = new JButton(sub);
+            JButton btn = Estilos.crearBotonSecundario(sub);
             btn.addActionListener(e -> mostrarProductos(categoria, sub));
             panel.add(btn);
         }
@@ -87,16 +99,15 @@ public class SelectorProductoDialog extends JDialog {
 
             while (rs.next()) {
                 String tipo = rs.getString("tipo");
+                if (tipo == null || tipo.isBlank()) {
+                    continue;
+                }
 
-                if (tipo == null || tipo.isBlank()) continue;
-
-                JButton btn = new JButton(tipo);
-                btn.setPreferredSize(new Dimension(140, 60));
+                JButton btn = Estilos.crearBotonSecundario(tipo);
                 btn.addActionListener(e -> {
                     dialogoTipos.dispose();
                     mostrarProductosPorTipo(categoria, subcategoria, tipo);
                 });
-
                 dialogoTipos.add(btn);
             }
 
@@ -126,13 +137,14 @@ public class SelectorProductoDialog extends JDialog {
                 String nombre = rs.getString("nombre");
                 double precio = rs.getDouble("precio");
 
-                JButton btn = new JButton("<html><center>" + nombre + "<br>$" + precio + "</center></html>");
-                btn.setPreferredSize(new Dimension(140, 70));
-                btn.addActionListener(e -> {
-                    agregarProductoACuenta(idProd, precio);
-                    dialogoProductos.dispose();
-                    this.dispose();
-                });
+                JButton btn = Estilos.crearBotonProducto(
+                        nombre + "<br>$" + precio,
+                        e -> {
+                            agregarProductoACuenta(idProd, precio);
+                            dialogoProductos.dispose();
+                            this.dispose();
+                        }
+                );
 
                 dialogoProductos.add(btn);
             }
@@ -164,4 +176,3 @@ public class SelectorProductoDialog extends JDialog {
         }
     }
 }
-

@@ -4,11 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.sql.*;
 import softarrecife.conexion.MySQLConnection;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 public class MenuPrincipalFrame extends JFrame {
 
@@ -21,18 +18,34 @@ public class MenuPrincipalFrame extends JFrame {
         this.nombreUsuario = nombreUsuario;
         this.tipoUsuario = tipoUsuario;
 
-        setTitle("Menú Principal - Bienvenido " + nombreUsuario);
-        setSize(800, 600);
-        setLocationRelativeTo(null);
+        setTitle("Summa POS - Bienvenido " + nombreUsuario);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
-        JPanel panelBotones = new JPanel(new GridLayout(3, 2, 20, 20));
+        setLayout(new BorderLayout());
 
-        JButton btnTurno = new JButton("🔓 Abrir/Cerrar Turno");
-        JButton btnComedor = new JButton("🍽️ Ir al Comedor");
-        JButton btnProductos = new JButton("🛒 Gestión de Productos");
-        JButton btnReportes = new JButton("📊 Reportes");
-        JButton btnSalir = new JButton("🚪 Cerrar Sesión");
+        JLabel titulo = new JLabel("Menú Principal", SwingConstants.CENTER);
+        titulo.setFont(new Font("SansSerif", Font.BOLD, 22));
+        titulo.setForeground(new Color(30, 30, 30));
+        titulo.setBorder(BorderFactory.createEmptyBorder(30, 0, 10, 0));
+        add(titulo, BorderLayout.NORTH);
+
+        // Panel con imagen de fondo
+        PanelConFondo panelFondo = new PanelConFondo("/softarrecife/assets/fondo.png");
+        panelFondo.setLayout(new GridBagLayout());
+
+        // Panel de botones centrado
+        JPanel panelBotones = new JPanel(new GridLayout(0, 2, 30, 30));
+        panelBotones.setOpaque(true);
+        panelBotones.setBackground(new Color(255, 255, 255, 210)); // blanco semi-transparente
+        panelBotones.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
+
+        // Botones
+        JButton btnTurno = crearBoton("🔓 Turno");
+        JButton btnComedor = crearBoton("🍽️ Comedor");
+        JButton btnProductos = crearBoton("🛒 Productos");
+        JButton btnReportes = crearBoton("📊 Reportes");
+        JButton btnSalir = crearBoton("🚪 Cerrar Sesión");
 
         btnTurno.addActionListener(e -> new TurnoFrame(usuarioId));
 
@@ -46,7 +59,6 @@ public class MenuPrincipalFrame extends JFrame {
 
         btnProductos.addActionListener(e -> new GestionProductosFrame());
         btnReportes.addActionListener(e -> new ReportesFrame());
-
         btnSalir.addActionListener(e -> {
             dispose();
             new LoginFrame();
@@ -54,14 +66,15 @@ public class MenuPrincipalFrame extends JFrame {
 
         panelBotones.add(btnTurno);
         panelBotones.add(btnComedor);
-
         if (tipoUsuario.equals("admin")) {
             panelBotones.add(btnProductos);
             panelBotones.add(btnReportes);
         }
-
         panelBotones.add(btnSalir);
-        add(panelBotones);
+
+        panelFondo.add(panelBotones); // centrado por GridBagLayout
+
+        add(panelFondo, BorderLayout.CENTER);
 
         addWindowListener(new WindowAdapter() {
             @Override
@@ -72,6 +85,19 @@ public class MenuPrincipalFrame extends JFrame {
         });
 
         setVisible(true);
+    }
+
+    private JButton crearBoton(String texto) {
+        JButton boton = new JButton(texto);
+        boton.setFont(new Font("SansSerif", Font.BOLD, 16));
+        boton.setBackground(new Color(240, 240, 240));
+        boton.setFocusPainted(false);
+        boton.setPreferredSize(new Dimension(200, 60));
+        boton.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(10, 20, 10, 20)
+        ));
+        return boton;
     }
 
     private boolean hayTurnoAbierto(int usuarioId) {
@@ -87,4 +113,24 @@ public class MenuPrincipalFrame extends JFrame {
             return false;
         }
     }
-} 
+
+    class PanelConFondo extends JPanel {
+        private Image fondo;
+
+        public PanelConFondo(String ruta) {
+            try {
+                fondo = new ImageIcon(getClass().getResource(ruta)).getImage();
+            } catch (Exception e) {
+                System.err.println("No se pudo cargar la imagen de fondo");
+            }
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (fondo != null) {
+                g.drawImage(fondo, 0, 0, getWidth(), getHeight(), this);
+            }
+        }
+    }
+}

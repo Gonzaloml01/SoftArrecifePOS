@@ -1,13 +1,15 @@
-// CuentaFrame.java - Corregido para cerrar cuenta y actualizar correctamente la base de datos sin eliminarla
 package softarrecife.vista;
 
 import softarrecife.conexion.MySQLConnection;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.*;
 import java.time.LocalDateTime;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.JTableHeader;
 
 public class CuentaFrame extends JFrame {
 
@@ -26,12 +28,11 @@ public class CuentaFrame extends JFrame {
 
         crearCuentaSiNoExiste();
         setTitle("Cuenta - " + mesaNombre + " (Atiende: " + obtenerNombreMesero() + ")");
-        setSize(600, 500);
+        setSize(700, 500);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
-        crearCuentaSiNoExiste();
         construirUI();
         cargarDetalleCuenta();
         setVisible(true);
@@ -39,18 +40,11 @@ public class CuentaFrame extends JFrame {
 
     private String obtenerNombreMesero() {
         try (Connection conn = MySQLConnection.getConnection()) {
-            String sql = """
-            SELECT u.nombre 
-            FROM cuentas c
-            JOIN usuarios u ON c.usuario_id = u.id
-            WHERE c.id = ?
-        """;
+            String sql = "SELECT u.nombre FROM cuentas c JOIN usuarios u ON c.usuario_id = u.id WHERE c.id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setInt(1, cuentaId);  // <-- cuentaId debe existir
+            ps.setInt(1, cuentaId);
             ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getString("nombre");
-            }
+            if (rs.next()) return rs.getString("nombre");
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -58,9 +52,21 @@ public class CuentaFrame extends JFrame {
     }
 
     private void construirUI() {
-        JPanel panelTop = new JPanel(new FlowLayout());
+        Color verde = new Color(46, 125, 50);
+        Color fondo = new Color(245, 245, 245);
+        Font fuente = new Font("SansSerif", Font.PLAIN, 14);
 
-        JButton btnAgregar = new JButton("Agregar producto");
+        JPanel panelTop = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panelTop.setBackground(fondo);
+        panelTop.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JButton btnAgregar = new JButton("➕ Agregar producto");
+        btnAgregar.setBackground(new Color(30, 144, 255));
+        btnAgregar.setForeground(Color.WHITE);
+        btnAgregar.setFocusPainted(false);
+        btnAgregar.setFont(fuente);
+        btnAgregar.setPreferredSize(new Dimension(180, 35));
+
         btnAgregar.addActionListener(e -> {
             SelectorProductoDialog selector = new SelectorProductoDialog(this, cuentaId);
             selector.setModal(true);
@@ -72,16 +78,30 @@ public class CuentaFrame extends JFrame {
         add(panelTop, BorderLayout.NORTH);
 
         tabla = new JTable();
+        tabla.setFont(fuente);
+        tabla.setRowHeight(25);
         JScrollPane scroll = new JScrollPane(tabla);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
         add(scroll, BorderLayout.CENTER);
 
-        lblTotal = new JLabel("Total: $0.0");
-        lblTotal.setFont(new Font("Arial", Font.BOLD, 18));
-        add(lblTotal, BorderLayout.SOUTH);
+        JPanel panelBottom = new JPanel(new BorderLayout());
+        panelBottom.setBorder(new EmptyBorder(10, 10, 10, 10));
+        panelBottom.setBackground(fondo);
+
+        lblTotal = new JLabel("Total: $0.00");
+        lblTotal.setFont(new Font("SansSerif", Font.BOLD, 18));
+        panelBottom.add(lblTotal, BorderLayout.CENTER);
 
         JButton btnCobrar = new JButton("💳 Imprimir ticket y cerrar cuenta");
+        btnCobrar.setBackground(verde);
+        btnCobrar.setForeground(Color.WHITE);
+        btnCobrar.setFocusPainted(false);
+        btnCobrar.setFont(fuente);
+        btnCobrar.setPreferredSize(new Dimension(250, 40));
         btnCobrar.addActionListener(e -> cerrarCuentaEImprimir());
-        add(btnCobrar, BorderLayout.WEST);
+        panelBottom.add(btnCobrar, BorderLayout.EAST);
+
+        add(panelBottom, BorderLayout.SOUTH);
     }
 
     private void crearCuentaSiNoExiste() {
@@ -100,9 +120,7 @@ public class CuentaFrame extends JFrame {
                 psInsert.setInt(2, comedorFrame.getUsuarioId());
                 psInsert.executeUpdate();
                 rs = psInsert.getGeneratedKeys();
-                if (rs.next()) {
-                    cuentaId = rs.getInt(1);
-                }
+                if (rs.next()) cuentaId = rs.getInt(1);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -117,21 +135,16 @@ public class CuentaFrame extends JFrame {
         double total = 0;
 
         try (Connection conn = MySQLConnection.getConnection()) {
-            String sql = """
-                SELECT p.nombre, dc.cantidad, dc.subtotal
-                FROM detalle_cuenta dc
-                JOIN productos p ON dc.producto_id = p.id
-                WHERE cuenta_id = ?
-            """;
+            String sql = "SELECT p.nombre, dc.cantidad, dc.subtotal FROM detalle_cuenta dc JOIN productos p ON dc.producto_id = p.id WHERE cuenta_id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setInt(1, cuentaId);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
                 model.addRow(new Object[]{
-                    rs.getString("nombre"),
-                    rs.getInt("cantidad"),
-                    rs.getDouble("subtotal")
+                        rs.getString("nombre"),
+                        rs.getInt("cantidad"),
+                        rs.getDouble("subtotal")
                 });
                 total += rs.getDouble("subtotal");
             }
@@ -142,6 +155,35 @@ public class CuentaFrame extends JFrame {
 
         tabla.setModel(model);
         lblTotal.setText("Total: $" + String.format("%.2f", total));
+                // Personalizar tabla visualmente
+        tabla.setRowHeight(28);
+        tabla.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        tabla.setGridColor(new Color(230, 230, 230));
+        tabla.setSelectionBackground(new Color(180, 205, 255));
+        tabla.setSelectionForeground(Color.BLACK);
+
+        JTableHeader header = tabla.getTableHeader();
+        header.setBackground(new Color(33, 150, 243));
+        header.setForeground(Color.WHITE);
+        header.setFont(new Font("SansSerif", Font.BOLD, 14));
+        header.setReorderingAllowed(false);
+
+        // Alternancia de color en filas
+        tabla.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            private final Color color1 = new Color(245, 245, 245);
+            private final Color color2 = new Color(230, 230, 230);
+
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    c.setBackground(row % 2 == 0 ? color1 : color2);
+                }
+                return c;
+            }
+        });
     }
 
     private void cerrarCuentaEImprimir() {
@@ -240,16 +282,14 @@ public class CuentaFrame extends JFrame {
         }
     }
 
-    private double calcularTotalCuenta() {
+   private double calcularTotalCuenta() {
         double total = 0;
         try (Connection conn = MySQLConnection.getConnection()) {
             String sql = "SELECT SUM(subtotal) as total FROM detalle_cuenta WHERE cuenta_id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setInt(1, cuentaId);
             ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                total = rs.getDouble("total");
-            }
+            if (rs.next()) total = rs.getDouble("total");
         } catch (SQLException e) {
             e.printStackTrace();
         }
