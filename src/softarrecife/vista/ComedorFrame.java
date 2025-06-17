@@ -1,12 +1,14 @@
 package softarrecife.vista;
 
 import softarrecife.conexion.MySQLConnection;
+import softarrecife.utils.WrapLayout;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
-import softarrecife.utils.WrapLayout;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ComedorFrame extends JFrame {
 
@@ -14,6 +16,12 @@ public class ComedorFrame extends JFrame {
     private int usuarioId;
     private String nombreMesero;
     private String tipoUsuario;
+
+    private boolean modoEliminarActivo = false;
+    private boolean modoRenombrarActivo = false;
+
+    private final List<JButton> botonesSeleccionados = new ArrayList<>();
+    private final List<Integer> idsSeleccionados = new ArrayList<>();
 
     public ComedorFrame(int usuarioId, String nombreMesero, String tipoUsuario) {
         this.usuarioId = usuarioId;
@@ -40,10 +48,36 @@ public class ComedorFrame extends JFrame {
         btnAgregar.setFont(new Font("SansSerif", Font.BOLD, 13));
         btnAgregar.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
 
+        JButton btnRenombrarMesa = new JButton("✏️ Renombrar Mesa");
+        btnRenombrarMesa.setFocusPainted(false);
+        btnRenombrarMesa.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btnRenombrarMesa.setBackground(new Color(200, 200, 255));
+
+        JButton btnCerrarMesa = new JButton("❌ Cerrar Mesa");
+        btnCerrarMesa.setFocusPainted(false);
+        btnCerrarMesa.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btnCerrarMesa.setBackground(new Color(255, 200, 200));
+
         panelBotones.add(btnAgregar);
+        panelBotones.add(btnRenombrarMesa);
+        panelBotones.add(btnCerrarMesa);
         add(panelBotones, BorderLayout.NORTH);
 
         btnAgregar.addActionListener(e -> agregarMesa());
+
+        btnRenombrarMesa.addActionListener(e -> {
+            modoEliminarActivo = false;
+            modoRenombrarActivo = true;
+            limpiarSeleccion();
+            JOptionPane.showMessageDialog(this, "Toca la mesa que deseas renombrar.");
+        });
+
+        btnCerrarMesa.addActionListener(e -> {
+            modoEliminarActivo = true;
+            modoRenombrarActivo = false;
+            limpiarSeleccion();
+            JOptionPane.showMessageDialog(this, "Selecciona las mesas a cerrar tocándolas.");
+        });
 
         panelMesas = new JPanel(new WrapLayout(FlowLayout.LEFT, 12, 12));
         panelMesas.setBackground(fondo);
@@ -56,7 +90,6 @@ public class ComedorFrame extends JFrame {
 
         setVisible(true);
 
-        // Forzar al frente
         setAlwaysOnTop(true);
         toFront();
         requestFocus();
@@ -69,6 +102,8 @@ public class ComedorFrame extends JFrame {
 
     public void cargarMesas() {
         panelMesas.removeAll();
+        botonesSeleccionados.clear();
+        idsSeleccionados.clear();
 
         try (Connection conn = MySQLConnection.getConnection()) {
             String sql;
@@ -95,15 +130,15 @@ public class ComedorFrame extends JFrame {
                 mesaBtn.setFocusPainted(false);
                 mesaBtn.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
 
-                mesaBtn.addMouseListener(new MouseAdapter() {
-                    @Override
-                    public void mousePressed(MouseEvent e) {
-                        if (SwingUtilities.isRightMouseButton(e)) {
-                            JPopupMenu menu = crearMenuContextual(id, nombre);
-                            menu.show(e.getComponent(), e.getX(), e.getY());
-                        } else if (SwingUtilities.isLeftMouseButton(e)) {
-                            SwingUtilities.invokeLater(() -> new CuentaFrame(id, nombre, ComedorFrame.this));
-                        }
+                mesaBtn.addActionListener(e -> {
+                    if (modoEliminarActivo) {
+                        toggleSeleccion(mesaBtn, id);
+                    } else if (modoRenombrarActivo) {
+                        renombrarMesa(id, nombre);
+                        modoRenombrarActivo = false;
+                        limpiarSeleccion();
+                    } else {
+                        SwingUtilities.invokeLater(() -> new CuentaFrame(id, nombre, ComedorFrame.this));
                     }
                 });
 
@@ -116,6 +151,38 @@ public class ComedorFrame extends JFrame {
 
         panelMesas.revalidate();
         panelMesas.repaint();
+    }
+
+    private void toggleSeleccion(JButton boton, int idMesa) {
+        if (idsSeleccionados.contains(idMesa)) {
+            idsSeleccionados.remove(Integer.valueOf(idMesa));
+            botonesSeleccionados.remove(boton);
+            boton.setBackground(Color.WHITE);
+        } else {
+            idsSeleccionados.add(idMesa);
+            botonesSeleccionados.add(boton);
+            boton.setBackground(new Color(255, 100, 100));
+        }
+
+        if (!idsSeleccionados.isEmpty()) {
+            int confirm = JOptionPane.showConfirmDialog(this, "¿Deseas cerrar las mesas seleccionadas?", "Confirmar", JOptionPane.YES_NO_OPTION);
+            if (confirm == JOptionPane.YES_OPTION) {
+                for (int id : idsSeleccionados) {
+                    verificarCierreDesdeContextual(id);
+                }
+                modoEliminarActivo = false;
+                limpiarSeleccion();
+                cargarMesas();
+            }
+        }
+    }
+
+    private void limpiarSeleccion() {
+        for (JButton btn : botonesSeleccionados) {
+            btn.setBackground(Color.WHITE);
+        }
+        botonesSeleccionados.clear();
+        idsSeleccionados.clear();
     }
 
     private void agregarMesa() {
@@ -132,20 +199,6 @@ public class ComedorFrame extends JFrame {
                 JOptionPane.showMessageDialog(this, "Error al agregar mesa: " + e.getMessage());
             }
         }
-    }
-
-    private JPopupMenu crearMenuContextual(int id, String nombre) {
-        JPopupMenu menu = new JPopupMenu();
-
-        JMenuItem itemCerrarCuenta = new JMenuItem("Cerrar cuenta");
-        itemCerrarCuenta.addActionListener(e -> verificarCierreDesdeContextual(id));
-        menu.add(itemCerrarCuenta);
-
-        JMenuItem itemRenombrar = new JMenuItem("Renombrar mesa");
-        itemRenombrar.addActionListener(e -> renombrarMesa(id, nombre));
-        menu.add(itemRenombrar);
-
-        return menu;
     }
 
     private void verificarCierreDesdeContextual(int mesaId) {
@@ -193,8 +246,6 @@ public class ComedorFrame extends JFrame {
                         "La cuenta ya estaba cerrada. La mesa fue eliminada.",
                         "Mesa eliminada", JOptionPane.INFORMATION_MESSAGE);
             }
-
-            cargarMesas();
 
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this,
