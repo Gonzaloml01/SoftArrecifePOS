@@ -48,15 +48,10 @@ public class MenuPrincipalFrame extends JFrame {
         btnReportes.addActionListener(e -> new ReportesFrame());
 
         btnSalir.addActionListener(e -> {
-            if (hayTurnoAbierto(usuarioId)) {
-                JOptionPane.showMessageDialog(this, "Debes cerrar el turno antes de cerrar sesión.");
-            } else {
-                dispose();
-                new LoginFrame();
-            }
+            dispose();
+            new LoginFrame();
         });
 
-        // Agregar botones según tipo de usuario
         panelBotones.add(btnTurno);
         panelBotones.add(btnComedor);
 
@@ -70,9 +65,9 @@ public class MenuPrincipalFrame extends JFrame {
 
         addWindowListener(new WindowAdapter() {
             @Override
-            public void windowClosing(WindowEvent e) {  
-                    dispose();
-                    new LoginFrame();
+            public void windowClosing(WindowEvent e) {
+                dispose();
+                new LoginFrame();
             }
         });
 
@@ -92,4 +87,4 @@ public class MenuPrincipalFrame extends JFrame {
             return false;
         }
     }
-}
+} 

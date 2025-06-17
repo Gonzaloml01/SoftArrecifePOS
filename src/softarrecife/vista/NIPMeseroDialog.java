@@ -1,56 +1,51 @@
 package softarrecife.vista;
 
+import softarrecife.conexion.MySQLConnection;
+
 import javax.swing.*;
 import java.awt.*;
 import java.sql.*;
-import softarrecife.conexion.MySQLConnection;
 
 public class NIPMeseroDialog extends JDialog {
 
     public NIPMeseroDialog(JFrame parent) {
-        super(parent, "Ingresar NIP del Mesero", true);
+        super(parent, "Ingresar NIP", true);
         setSize(300, 150);
         setLocationRelativeTo(parent);
-        setLayout(new BorderLayout());
 
         JTextField txtNip = new JPasswordField();
-        JButton btnAceptar = new JButton("Entrar");
+        JButton btnAceptar = new JButton("Aceptar");
 
-        JPanel panelCentro = new JPanel(new GridLayout(2, 1));
-        panelCentro.add(new JLabel("NIP del mesero:"));
-        panelCentro.add(txtNip);
-        add(panelCentro, BorderLayout.CENTER);
-        add(btnAceptar, BorderLayout.SOUTH);
+        setLayout(new GridLayout(3, 1));
+        add(new JLabel("Ingrese su NIP:"));
+        add(txtNip);
+        add(btnAceptar);
 
         btnAceptar.addActionListener(e -> {
-            String nip = txtNip.getText().trim();
+            String nip = txtNip.getText();
 
-            if (!nip.isEmpty()) {
-                try (Connection conn = MySQLConnection.getConnection()) {
-                    String sql = "SELECT * FROM usuarios WHERE nip = ?";
-                    PreparedStatement ps = conn.prepareStatement(sql);
-                    ps.setString(1, nip);
-                    ResultSet rs = ps.executeQuery();
+            try (Connection conn = MySQLConnection.getConnection()) {
+                String sql = "SELECT id, nombre, tipo FROM usuarios WHERE nip = ?";
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ps.setString(1, nip);
+                ResultSet rs = ps.executeQuery();
 
-                    if (rs.next()) {
-                        String tipo = rs.getString("tipo");
-                        int id = rs.getInt("id");
-                        String nombre = rs.getString("nombre");
+                if (rs.next()) {
+                    int usuarioId = rs.getInt("id");
+                    String nombre = rs.getString("nombre");
+                    String tipo = rs.getString("tipo");
 
-                        if (tipo.equals("admin")) {
-                            new ComedorFrame(true, id, nombre); // admin ve todo
-                        } else {
-                            new ComedorFrame(false, id, nombre); // mesero solo sus mesas
-                        }
+                    ComedorFrame comedor = new ComedorFrame(usuarioId, nombre, tipo);
+                    comedor.setVisible(true);
+                    comedor.toFront();
 
-                        dispose();
-                    } else {
-                        JOptionPane.showMessageDialog(this, "NIP incorrecto.");
-                    }
-
-                } catch (SQLException ex) {
-                    JOptionPane.showMessageDialog(this, "Error al validar NIP: " + ex.getMessage());
+                    dispose();
+                } else {
+                    JOptionPane.showMessageDialog(this, "NIP incorrecto");
                 }
+
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Error al verificar NIP: " + ex.getMessage());
             }
         });
 
