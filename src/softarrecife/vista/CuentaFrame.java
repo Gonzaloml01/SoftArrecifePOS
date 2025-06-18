@@ -10,6 +10,11 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
+import softarrecife.utils.TicketPrinter;
+import softarrecife.ImpresionCerrarCuenta;
+import java.util.List;
+import java.util.ArrayList;
+
 
 public class CuentaFrame extends JFrame {
 
@@ -44,7 +49,9 @@ public class CuentaFrame extends JFrame {
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setInt(1, cuentaId);
             ResultSet rs = ps.executeQuery();
-            if (rs.next()) return rs.getString("nombre");
+            if (rs.next()) {
+                return rs.getString("nombre");
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -120,7 +127,9 @@ public class CuentaFrame extends JFrame {
                 psInsert.setInt(2, comedorFrame.getUsuarioId());
                 psInsert.executeUpdate();
                 rs = psInsert.getGeneratedKeys();
-                if (rs.next()) cuentaId = rs.getInt(1);
+                if (rs.next()) {
+                    cuentaId = rs.getInt(1);
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -142,9 +151,9 @@ public class CuentaFrame extends JFrame {
 
             while (rs.next()) {
                 model.addRow(new Object[]{
-                        rs.getString("nombre"),
-                        rs.getInt("cantidad"),
-                        rs.getDouble("subtotal")
+                    rs.getString("nombre"),
+                    rs.getInt("cantidad"),
+                    rs.getDouble("subtotal")
                 });
                 total += rs.getDouble("subtotal");
             }
@@ -155,7 +164,7 @@ public class CuentaFrame extends JFrame {
 
         tabla.setModel(model);
         lblTotal.setText("Total: $" + String.format("%.2f", total));
-                // Personalizar tabla visualmente
+        // Personalizar tabla visualmente
         tabla.setRowHeight(28);
         tabla.setFont(new Font("SansSerif", Font.PLAIN, 14));
         tabla.setGridColor(new Color(230, 230, 230));
@@ -175,8 +184,8 @@ public class CuentaFrame extends JFrame {
 
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
-                                                           boolean isSelected, boolean hasFocus,
-                                                           int row, int column) {
+                    boolean isSelected, boolean hasFocus,
+                    int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 if (!isSelected) {
                     c.setBackground(row % 2 == 0 ? color1 : color2);
@@ -272,6 +281,32 @@ public class CuentaFrame extends JFrame {
             text.setEditable(false);
             JOptionPane.showMessageDialog(this, new JScrollPane(text), "Resumen de cuenta", JOptionPane.INFORMATION_MESSAGE);
 
+            try {
+                // Obtener detalle de productos de la cuenta
+                List<String> lineas = new ArrayList<>();
+                String detalleSQL = "SELECT p.nombre, dp.cantidad, dp.precio_unitario FROM detalle_cuenta dp JOIN productos p ON dp.producto_id = p.id WHERE dp.cuenta_id = ?";
+                PreparedStatement psDetalle = conn.prepareStatement(detalleSQL);
+                psDetalle.setInt(1, cuentaId);
+                ResultSet rs = psDetalle.executeQuery();
+
+                while (rs.next()) {
+                    String nombre = rs.getString("nombre");
+                    int cant = rs.getInt("cantidad");
+                    double precio = rs.getDouble("precio_unitario") * cant;
+                    String linea = String.format("%-15s x%-2d $%.2f", nombre, cant, precio);
+                    lineas.add(linea);
+                }
+
+                // Total con propina ya sumada
+                double totalConPropina = total + propina;
+
+                // Imprimir ticket profesional
+                ImpresionCerrarCuenta.imprimirTicket(lineas, total, propina, totalConPropina, metodo);
+
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error al imprimir ticket: " + ex.getMessage());
+            }
+
             dispose();
             if (comedorFrame != null) {
                 comedorFrame.cargarMesas();
@@ -282,14 +317,16 @@ public class CuentaFrame extends JFrame {
         }
     }
 
-   private double calcularTotalCuenta() {
+    private double calcularTotalCuenta() {
         double total = 0;
         try (Connection conn = MySQLConnection.getConnection()) {
             String sql = "SELECT SUM(subtotal) as total FROM detalle_cuenta WHERE cuenta_id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setInt(1, cuentaId);
             ResultSet rs = ps.executeQuery();
-            if (rs.next()) total = rs.getDouble("total");
+            if (rs.next()) {
+                total = rs.getDouble("total");
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
