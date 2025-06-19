@@ -1,5 +1,10 @@
 package softarrecife.vista;
 
+import java.util.Map;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+
 import softarrecife.conexion.MySQLConnection;
 import softarrecife.utils.TicketPrinter;
 import softarrecife.ImpresionCerrarCuenta;
@@ -10,6 +15,8 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,12 +31,17 @@ public class CuentaFrame extends JFrame {
     private JTable tabla;
     private JLabel lblTotal;
 
+    private Set<Integer> productosYaComandeados = new HashSet<>();
+    private boolean comandaImpresa = false;
+
     public CuentaFrame(int mesaId, String mesaNombre, ComedorFrame comedorFrame) {
         this.mesaId = mesaId;
         this.mesaNombre = mesaNombre;
         this.comedorFrame = comedorFrame;
 
         crearCuentaSiNoExiste();
+        productosYaComandeados = obtenerIdsProductosDeCuenta();
+
         setTitle("Cuenta - " + mesaNombre + " (Atiende: " + obtenerNombreMesero() + ")");
         setSize(700, 500);
         setLocationRelativeTo(null);
@@ -39,6 +51,115 @@ public class CuentaFrame extends JFrame {
         construirUI();
         cargarDetalleCuenta();
         setVisible(true);
+
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (!comandaImpresa) {
+                    imprimirSoloProductosNuevos();
+                    comandaImpresa = true;
+                }
+            }
+        });
+    }
+
+    private Set<Integer> obtenerIdsProductosDeCuenta() {
+        Set<Integer> ids = new HashSet<>();
+        try (Connection conn = MySQLConnection.getConnection()) {
+            String sql = "SELECT producto_id FROM detalle_cuenta WHERE cuenta_id = ?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, cuentaId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                ids.add(rs.getInt("producto_id"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return ids;
+    }
+
+   private void imprimirSoloProductosNuevos() {
+    try (Connection conn = MySQLConnection.getConnection()) {
+        String sql = "SELECT p.id, p.nombre, dc.cantidad, p.tipo " +
+                     "FROM detalle_cuenta dc " +
+                     "JOIN productos p ON dc.producto_id = p.id " +
+                     "WHERE dc.cuenta_id = ?";
+        PreparedStatement ps = conn.prepareStatement(sql);
+        ps.setInt(1, cuentaId);
+        ResultSet rs = ps.executeQuery();
+
+        Map<String, List<String>> nuevosPorTipo = new HashMap<>();
+        Set<Integer> idsRecientes = new HashSet<>();
+
+        while (rs.next()) {
+            int idProd = rs.getInt("id");
+            if (productosYaComandeados.contains(idProd)) continue;
+
+            String nombre = rs.getString("nombre");
+            int cantidad = rs.getInt("cantidad");
+            String tipo = rs.getString("tipo");
+
+            String linea = String.format("%s x%d", nombre, cantidad);
+            nuevosPorTipo.putIfAbsent(tipo, new ArrayList<>());
+            nuevosPorTipo.get(tipo).add(linea);
+
+            idsRecientes.add(idProd); // Marcar como ya impreso
+        }
+
+        String nombreMesa = this.mesaNombre;
+        String mesero = obtenerNombreMesero();
+
+        for (String tipo : nuevosPorTipo.keySet()) {
+            List<String> lineas = nuevosPorTipo.get(tipo);
+            if (!lineas.isEmpty()) {
+                ImpresionCerrarCuenta.imprimirComandaPorTipo(tipo, lineas, nombreMesa, mesero);
+            }
+        }
+
+        // Marcar los nuevos como ya comandados para futuras aperturas
+        productosYaComandeados.addAll(idsRecientes);
+
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this, "Error al imprimir comanda: " + e.getMessage());
+    }
+}
+
+    private void imprimirComandaActualDesdeBD() {
+        try (Connection conn = MySQLConnection.getConnection()) {
+            String sql = "SELECT p.nombre, dc.cantidad, p.tipo " +
+                         "FROM detalle_cuenta dc " +
+                         "JOIN productos p ON dc.producto_id = p.id " +
+                         "WHERE dc.cuenta_id = ?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, cuentaId);
+            ResultSet rs = ps.executeQuery();
+
+            Map<String, List<String>> productosPorTipo = new HashMap<>();
+
+            while (rs.next()) {
+                String nombre = rs.getString("nombre");
+                int cantidad = rs.getInt("cantidad");
+                String tipo = rs.getString("tipo");
+
+                String linea = String.format("%s x%d", nombre, cantidad);
+                productosPorTipo.putIfAbsent(tipo, new ArrayList<>());
+                productosPorTipo.get(tipo).add(linea);
+            }
+
+            String nombreMesa = this.mesaNombre;
+            String mesero = obtenerNombreMesero();
+
+            for (String tipo : productosPorTipo.keySet()) {
+                List<String> lineas = productosPorTipo.get(tipo);
+                if (!lineas.isEmpty()) {
+                    ImpresionCerrarCuenta.imprimirComandaPorTipo(tipo, lineas, nombreMesa, mesero);
+                }
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al imprimir comanda: " + e.getMessage());
+        }
     }
 
     public String getNombreMesa() {
@@ -88,6 +209,16 @@ public class CuentaFrame extends JFrame {
 
         panelTop.add(btnAgregar);
         add(panelTop, BorderLayout.NORTH);
+
+        JButton btnEliminar = new JButton("🗑 Eliminar producto");
+        btnEliminar.setBackground(new Color(220, 53, 69)); // Rojo tipo Bootstrap
+        btnEliminar.setForeground(Color.WHITE);
+        btnEliminar.setFocusPainted(false);
+        btnEliminar.setFont(fuente);
+        btnEliminar.setPreferredSize(new Dimension(180, 35));
+        btnEliminar.addActionListener(e -> eliminarProductoSeleccionado());
+
+        panelTop.add(btnEliminar);
 
         tabla = new JTable();
         tabla.setFont(fuente);
@@ -165,9 +296,9 @@ public class CuentaFrame extends JFrame {
 
             while (rs.next()) {
                 model.addRow(new Object[]{
-                        rs.getString("nombre"),
-                        rs.getInt("cantidad"),
-                        rs.getDouble("subtotal")
+                    rs.getString("nombre"),
+                    rs.getInt("cantidad"),
+                    rs.getDouble("subtotal")
                 });
                 total += rs.getDouble("subtotal");
             }
@@ -206,6 +337,48 @@ public class CuentaFrame extends JFrame {
         });
     }
 
+    private void eliminarProductoSeleccionado() {
+        int fila = tabla.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Selecciona un producto para eliminar.");
+            return;
+        }
+
+        String nombreProducto = tabla.getValueAt(fila, 0).toString();
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "¿Eliminar \"" + nombreProducto + "\" de la cuenta?", "Confirmación",
+                JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            try (Connection conn = MySQLConnection.getConnection()) {
+                // Obtener ID del producto en la cuenta
+                String sql = "SELECT dc.id FROM detalle_cuenta dc "
+                        + "JOIN productos p ON dc.producto_id = p.id "
+                        + "WHERE dc.cuenta_id = ? AND p.nombre = ? LIMIT 1";
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ps.setInt(1, cuentaId);
+                ps.setString(2, nombreProducto);
+                ResultSet rs = ps.executeQuery();
+
+                if (rs.next()) {
+                    int detalleId = rs.getInt("id");
+
+                    String eliminar = "DELETE FROM detalle_cuenta WHERE id = ?";
+                    PreparedStatement psEliminar = conn.prepareStatement(eliminar);
+                    psEliminar.setInt(1, detalleId);
+                    psEliminar.executeUpdate();
+
+                    cargarDetalleCuenta();
+                } else {
+                    JOptionPane.showMessageDialog(this, "No se encontró el producto en la base de datos.");
+                }
+
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Error al eliminar producto: " + e.getMessage());
+            }
+        }
+    }
+
     private void imprimirTicketCliente() {
         try (Connection conn = MySQLConnection.getConnection()) {
             List<String> lineas = new ArrayList<>();
@@ -234,8 +407,11 @@ public class CuentaFrame extends JFrame {
 
     private void cerrarCuentaYRegistrarPago() {
         String[] opciones = {"Efectivo", "Tarjeta", "Transferencia"};
-        String metodo = (String) JOptionPane.showInputDialog(this, "Método de pago:", "Cobro", JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
-        if (metodo == null) return;
+        String metodo = (String) JOptionPane.showInputDialog(this, "Método de pago:", "Cobro",
+                JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
+        if (metodo == null) {
+            return;
+        }
 
         double total = calcularTotalCuenta();
         double montoPagado = total;
@@ -243,7 +419,9 @@ public class CuentaFrame extends JFrame {
 
         if (metodo.equals("Efectivo")) {
             String pagadoStr = JOptionPane.showInputDialog(this, "¿Con cuánto pagó el cliente?");
-            if (pagadoStr == null) return;
+            if (pagadoStr == null) {
+                return;
+            }
             try {
                 montoPagado = Double.parseDouble(pagadoStr);
                 cambio = montoPagado - total;
@@ -255,7 +433,8 @@ public class CuentaFrame extends JFrame {
 
         double propina = 0;
         String[] tipoPropina = {"% Porcentaje", "$ Monto fijo", "Sin propina"};
-        int opcionPropina = JOptionPane.showOptionDialog(this, "¿El cliente dejó propina?", "Propina", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, tipoPropina, tipoPropina[0]);
+        int opcionPropina = JOptionPane.showOptionDialog(this, "¿El cliente dejó propina?", "Propina",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, tipoPropina, tipoPropina[0]);
 
         if (opcionPropina == 0) {
             String propinaStr = JOptionPane.showInputDialog(this, "¿Qué porcentaje dejó?");
@@ -279,6 +458,7 @@ public class CuentaFrame extends JFrame {
         }
 
         try (Connection conn = MySQLConnection.getConnection()) {
+            // Guardar cierre
             String sql = "UPDATE cuentas SET estado = 'cerrada', metodo_pago = ?, total = ?, propina = ?, fecha_cierre = NOW() WHERE id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setString(1, metodo);
@@ -292,9 +472,12 @@ public class CuentaFrame extends JFrame {
             ps.setInt(1, mesaId);
             ps.executeUpdate();
 
-            double totalConPropina = total + propina;
-            List<String> lineas = new ArrayList<>();
-            String detalleSQL = "SELECT p.nombre, dc.cantidad, dc.subtotal FROM detalle_cuenta dc JOIN productos p ON dc.producto_id = p.id WHERE dc.cuenta_id = ?";
+            // Agrupar productos por tipo
+            Map<String, List<String>> comandasPorTipo = new HashMap<>();
+            String detalleSQL = "SELECT p.nombre, dc.cantidad, dc.subtotal, p.tipo "
+                    + "FROM detalle_cuenta dc "
+                    + "JOIN productos p ON dc.producto_id = p.id "
+                    + "WHERE dc.cuenta_id = ?";
             PreparedStatement psDetalle = conn.prepareStatement(detalleSQL);
             psDetalle.setInt(1, cuentaId);
             ResultSet rs = psDetalle.executeQuery();
@@ -303,12 +486,26 @@ public class CuentaFrame extends JFrame {
                 String nombre = rs.getString("nombre");
                 int cant = rs.getInt("cantidad");
                 double subtotal = rs.getDouble("subtotal");
+                String tipo = rs.getString("tipo");
+
                 String linea = String.format("%-15s x%-2d $%.2f", nombre, cant, subtotal);
-                lineas.add(linea);
+
+                comandasPorTipo.putIfAbsent(tipo, new ArrayList<>());
+                comandasPorTipo.get(tipo).add(linea);
             }
 
-            // Este sí abre la caja al imprimir el ticket final
-            ImpresionCerrarCuenta.imprimirTicket(lineas, total, propina, totalConPropina, metodo);
+            double totalConPropina = total + propina;
+
+            // Imprimir una comanda por tipo (bebida, comida, etc.)
+            String mesaNombre = this.mesaNombre;
+            String mesero = obtenerNombreMesero();
+
+            for (String tipo : comandasPorTipo.keySet()) {
+                List<String> lineas = comandasPorTipo.get(tipo);
+                if (!lineas.isEmpty()) {
+                    ImpresionCerrarCuenta.imprimirComandaPorTipo(tipo, lineas, mesaNombre, mesero);
+                }
+            }
 
             dispose();
             if (comedorFrame != null) {

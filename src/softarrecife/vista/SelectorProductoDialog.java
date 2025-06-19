@@ -53,12 +53,12 @@ public class SelectorProductoDialog extends JDialog {
         crearPanelSubcategorias();
 
         // Escuchar cierre de ventana para imprimir
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosed(WindowEvent e) {
-                imprimirComandas();
-            }
-        });
+//        addWindowListener(new WindowAdapter() {
+//            @Override
+//            public void windowClosed(WindowEvent e) {
+//                imprimirComandas();
+//            }
+//        });
     }
 
     private void crearPanelSubcategorias() {
