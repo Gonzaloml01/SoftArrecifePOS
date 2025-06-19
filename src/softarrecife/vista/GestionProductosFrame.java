@@ -20,6 +20,7 @@ public class GestionProductosFrame extends JFrame {
     private JComboBox<String> comboSubcategoria;
 
     public GestionProductosFrame() {
+
         setTitle("Gestión de Productos");
         setSize(900, 600);
         setLocationRelativeTo(null);

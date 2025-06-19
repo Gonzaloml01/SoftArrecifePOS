@@ -24,78 +24,94 @@ public class ComedorFrame extends JFrame {
     private final List<JButton> botonesSeleccionados = new ArrayList<>();
     private final List<Integer> idsSeleccionados = new ArrayList<>();
 
-    public ComedorFrame(int usuarioId, String nombreMesero, String tipoUsuario) {
-        this.usuarioId = usuarioId;
-        this.nombreMesero = nombreMesero;
-        this.tipoUsuario = tipoUsuario;
+   public ComedorFrame(int usuarioId, String nombreMesero, String tipoUsuario) {
+    this.usuarioId = usuarioId;
+    this.nombreMesero = nombreMesero;
+    this.tipoUsuario = tipoUsuario;
 
-        setTitle("Summa POS - Comedor de " + nombreMesero);
-        setSize(900, 600);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setLayout(new BorderLayout());
+    setTitle("Summa POS - Comedor de " + nombreMesero);
+    setSize(900, 600);
+    setLocationRelativeTo(null);
+    setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+    setLayout(new BorderLayout());
 
-        Color fondo = new Color(245, 245, 245);
-        Color primario = new Color(30, 144, 255);
-        Font fuente = new Font("SansSerif", Font.PLAIN, 14);
+    // COLORES
+    Color fondo = new Color(245, 245, 245);
+    Color azulSuave = new Color(100, 149, 237); // azul cornflower
+    Color rojoSuave = new Color(255, 160, 160); // rojo pastel suave
 
-        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panelBotones.setBackground(fondo);
+    // ========== PANEL HEADER (Título y línea) ==========
+    JPanel panelHeader = new JPanel(new BorderLayout());
+    panelHeader.setBackground(new Color(240, 240, 240));
 
-        JButton btnAgregar = Estilos.crearBotonModerno("➕ Agregar mesa", null);
-        btnAgregar.setFocusPainted(false);
-        btnAgregar.setBackground(primario);
-        btnAgregar.setForeground(Color.WHITE);
-        btnAgregar.setFont(new Font("SansSerif", Font.BOLD, 13));
-        btnAgregar.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+    JLabel lblTitulo = new JLabel("Comedor de Gonzalo", SwingConstants.CENTER);
+    lblTitulo.setFont(new Font("SansSerif", Font.BOLD, 20));
+    lblTitulo.setForeground(Color.DARK_GRAY);
+    lblTitulo.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
 
-        JButton btnRenombrarMesa = Estilos.crearBotonModerno("✏️ Renombrar Mesa", null);
-        btnRenombrarMesa.setFocusPainted(false);
-        btnRenombrarMesa.setFont(new Font("SansSerif", Font.BOLD, 13));
-        btnRenombrarMesa.setBackground(new Color(200, 200, 255));
+    JPanel lineaSeparadora = new JPanel();
+    lineaSeparadora.setBackground(new Color(180, 180, 180));
+    lineaSeparadora.setPreferredSize(new Dimension(1, 2));
 
-        JButton btnCerrarMesa = Estilos.crearBotonModerno("❌ Cerrar Mesa", null);
-        btnCerrarMesa.setFocusPainted(false);
-        btnCerrarMesa.setFont(new Font("SansSerif", Font.BOLD, 13));
-        btnCerrarMesa.setBackground(new Color(255, 200, 200));
+    panelHeader.add(lblTitulo, BorderLayout.CENTER);
+    panelHeader.add(lineaSeparadora, BorderLayout.SOUTH);
 
-        panelBotones.add(btnAgregar);
-        panelBotones.add(btnRenombrarMesa);
-        panelBotones.add(btnCerrarMesa);
-        add(panelBotones, BorderLayout.NORTH);
+    // ========== PANEL BOTONES ==========
+    JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.LEFT));
+    panelBotones.setBackground(fondo);
 
-        btnAgregar.addActionListener(e -> agregarMesa());
+    JButton btnAgregar = Estilos.crearBotonModernoFijo("➕ Agregar mesa", azulSuave);
+    JButton btnRenombrarMesa = Estilos.crearBotonModernoFijo("➖ Renombrar Mesa", azulSuave);
+    JButton btnCerrarMesa = Estilos.crearBotonModernoFijo("❌ Cerrar Mesa", rojoSuave);
 
-        btnRenombrarMesa.addActionListener(e -> {
-            modoEliminarActivo = false;
-            modoRenombrarActivo = true;
-            limpiarSeleccion();
-            JOptionPane.showMessageDialog(this, "Toca la mesa que deseas renombrar.");
-        });
+    panelBotones.add(btnAgregar);
+    panelBotones.add(btnRenombrarMesa);
+    panelBotones.add(btnCerrarMesa);
 
-        btnCerrarMesa.addActionListener(e -> {
-            modoEliminarActivo = true;
-            modoRenombrarActivo = false;
-            limpiarSeleccion();
-            JOptionPane.showMessageDialog(this, "Selecciona las mesas a cerrar tocándolas.");
-        });
+    // ========== PANEL MESAS ==========
+    panelMesas = new JPanel(new WrapLayout(FlowLayout.LEFT, 12, 12));
+    panelMesas.setBackground(fondo);
 
-        panelMesas = new JPanel(new WrapLayout(FlowLayout.LEFT, 12, 12));
-        panelMesas.setBackground(fondo);
+    JScrollPane scroll = new JScrollPane(panelMesas);
+    scroll.setBorder(BorderFactory.createEmptyBorder());
 
-        JScrollPane scroll = new JScrollPane(panelMesas);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        add(scroll, BorderLayout.CENTER);
+    // ========== PANEL CONTENIDO CENTRAL (Botones + mesas) ==========
+    JPanel panelCentral = new JPanel(new BorderLayout());
+    panelCentral.setBackground(fondo);
+    panelCentral.add(panelBotones, BorderLayout.NORTH);
+    panelCentral.add(scroll, BorderLayout.CENTER);
 
-        cargarMesas();
+    // ========== AGREGAR TODO ==========
+    add(panelHeader, BorderLayout.NORTH);
+    add(panelCentral, BorderLayout.CENTER);
 
-        setVisible(true);
+    // ========== EVENTOS ==========
+    btnAgregar.addActionListener(e -> agregarMesa());
 
-        setAlwaysOnTop(true);
-        toFront();
-        requestFocus();
-        setAlwaysOnTop(false);
-    }
+    btnRenombrarMesa.addActionListener(e -> {
+        modoEliminarActivo = false;
+        modoRenombrarActivo = true;
+        limpiarSeleccion();
+        JOptionPane.showMessageDialog(this, "Toca la mesa que deseas renombrar.");
+    });
+
+    btnCerrarMesa.addActionListener(e -> {
+        modoEliminarActivo = true;
+        modoRenombrarActivo = false;
+        limpiarSeleccion();
+        JOptionPane.showMessageDialog(this, "Selecciona las mesas a cerrar tocándolas.");
+    });
+
+    // Cargar las mesas
+    cargarMesas();
+
+    // Mostrar ventana
+    setVisible(true);
+    setAlwaysOnTop(true);
+    toFront();
+    requestFocus();
+    setAlwaysOnTop(false);
+}
 
     public int getUsuarioId() {
         return usuarioId;

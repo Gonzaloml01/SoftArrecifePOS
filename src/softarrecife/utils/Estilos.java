@@ -21,17 +21,16 @@ public class Estilos {
         boton.setFont(fuenteNormal);
         boton.setBorder(new RoundedBorder(10));
     }
-    
-    public static void estilizarLabel(JLabel label) {
-    label.setFont(fuenteNormal);
-    label.setForeground(grisOscuro);
-}
-    
-    public static void estilizarLabelTitulo(JLabel label) {
-    label.setFont(fuenteTitulo);
-    label.setForeground(new Color(30, 30, 30));
-}
 
+    public static void estilizarLabel(JLabel label) {
+        label.setFont(fuenteNormal);
+        label.setForeground(grisOscuro);
+    }
+
+    public static void estilizarLabelTitulo(JLabel label) {
+        label.setFont(fuenteTitulo);
+        label.setForeground(new Color(30, 30, 30));
+    }
 
     public static JButton crearBotonPrincipal(String texto) {
         JButton btn = new JButton(texto);
@@ -68,41 +67,111 @@ public class Estilos {
     }
 
     public static JButton crearBotonModerno(String texto, Icon icono) {
-    JButton boton = new JButton(texto, icono);
+        JButton boton = new JButton(texto, icono);
+        boton.setHorizontalAlignment(SwingConstants.LEFT);
+        boton.setIconTextGap(12);
+        boton.setFont(new Font("SansSerif", Font.BOLD, 16));
+        boton.setForeground(new Color(40, 40, 40));
+        boton.setBackground(Color.WHITE);
+        boton.setFocusPainted(false);
+        boton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        boton.setOpaque(true);
+
+        // Borde con efecto 3D
+        Border bordeRelieve = BorderFactory.createBevelBorder(BevelBorder.RAISED,
+                new Color(255, 255, 255), // High light
+                new Color(200, 200, 200), // Shadow
+                new Color(160, 160, 160), // Dark shadow
+                new Color(230, 230, 230) // Light
+        );
+
+        boton.setBorder(BorderFactory.createCompoundBorder(
+                bordeRelieve,
+                new EmptyBorder(12, 20, 12, 20)
+        ));
+
+        // Hover
+        boton.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                boton.setBackground(new Color(245, 245, 245));
+            }
+
+            public void mouseExited(MouseEvent e) {
+                boton.setBackground(Color.WHITE);
+            }
+        });
+
+        return boton;
+    }
+
+   public static JButton crearBotonModernoConColor(String texto, Color colorFondo) {
+    if (colorFondo == null) {
+        colorFondo = new Color(33, 150, 243); // Color azul por defecto
+    }
+
+    JButton boton = new JButton(texto);
     boton.setHorizontalAlignment(SwingConstants.LEFT);
-    boton.setIconTextGap(12);
-    boton.setFont(new Font("SansSerif", Font.BOLD, 16));
-    boton.setForeground(new Color(40, 40, 40));
-    boton.setBackground(Color.WHITE);
+    boton.setFont(new Font("SansSerif", Font.BOLD, 15));
+    boton.setForeground(Color.BLACK);
+    boton.setBackground(colorFondo);
     boton.setFocusPainted(false);
     boton.setCursor(new Cursor(Cursor.HAND_CURSOR));
     boton.setOpaque(true);
 
-    // Borde con efecto 3D
     Border bordeRelieve = BorderFactory.createBevelBorder(BevelBorder.RAISED,
-            new Color(255, 255, 255), // High light
-            new Color(200, 200, 200), // Shadow
-            new Color(160, 160, 160), // Dark shadow
-            new Color(230, 230, 230)  // Light
+            new Color(255, 255, 255),
+            new Color(200, 200, 200),
+            new Color(160, 160, 160),
+            new Color(230, 230, 230)
     );
 
     boton.setBorder(BorderFactory.createCompoundBorder(
             bordeRelieve,
-            new EmptyBorder(12, 20, 12, 20)
+            new EmptyBorder(12, 24, 12, 24)
     ));
 
-    // Hover
+    final Color colorFinal = colorFondo;
     boton.addMouseListener(new MouseAdapter() {
         public void mouseEntered(MouseEvent e) {
-            boton.setBackground(new Color(245, 245, 245));
+            boton.setBackground(colorFinal.darker());
         }
+
         public void mouseExited(MouseEvent e) {
-            boton.setBackground(Color.WHITE);
+            boton.setBackground(colorFinal);
         }
     });
 
     return boton;
 }
+   
+   public static JButton crearBotonModernoFijo(String texto, Color colorFondo) {
+    if (colorFondo == null) {
+        colorFondo = new Color(230, 230, 230);
+    }
+
+    JButton boton = new JButton(texto);
+    boton.setHorizontalAlignment(SwingConstants.LEFT);
+    boton.setFont(new Font("SansSerif", Font.BOLD, 15));
+    boton.setForeground(Color.BLACK);
+    boton.setBackground(colorFondo);
+    boton.setFocusPainted(false);
+    boton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    boton.setOpaque(true);
+
+    Border borde3D = BorderFactory.createBevelBorder(BevelBorder.RAISED,
+            new Color(255, 255, 255),
+            new Color(200, 200, 200),
+            new Color(160, 160, 160),
+            new Color(230, 230, 230));
+
+    boton.setBorder(BorderFactory.createCompoundBorder(
+            borde3D,
+            new EmptyBorder(10, 20, 10, 20)
+    ));
+
+    return boton;
+}
+
 
     public static JButton crearBotonProducto(String texto, ActionListener al) {
         JButton btn = new JButton("<html><center>" + texto + "</center></html>");
@@ -144,7 +213,6 @@ public class Estilos {
         tabla.setGridColor(new Color(230, 230, 230));
         tabla.setSelectionBackground(new Color(180, 205, 255));
         tabla.setSelectionForeground(Color.BLACK);
-        
 
         JTableHeader header = tabla.getTableHeader();
         header.setBackground(azulPrimario);
