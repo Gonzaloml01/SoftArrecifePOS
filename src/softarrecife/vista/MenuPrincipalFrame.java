@@ -6,6 +6,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.sql.*;
 import softarrecife.conexion.MySQLConnection;
+import softarrecife.utils.Estilos;
 
 public class MenuPrincipalFrame extends JFrame {
 
@@ -41,11 +42,26 @@ public class MenuPrincipalFrame extends JFrame {
         panelBotones.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
         // Botones
-        JButton btnTurno = crearBoton("🔓 Turno");
-        JButton btnComedor = crearBoton("🍽️ Comedor");
-        JButton btnProductos = crearBoton("🛒 Productos");
-        JButton btnReportes = crearBoton("📊 Reportes");
-        JButton btnSalir = crearBoton("🚪 Cerrar Sesión");
+        Icon iconTurno = Estilos.cargarIcono("src/softarrecife/recursos/turno.png", 55, 55);
+        JButton btnTurno = Estilos.crearBotonModerno("Turno", iconTurno);
+
+        Icon iconComedor = Estilos.cargarIcono("src/softarrecife/recursos/comedor.png", 55, 55);
+        JButton btnComedor = Estilos.crearBotonModerno("Comedor", iconComedor);
+
+        Icon iconProductos = Estilos.cargarIcono("src/softarrecife/recursos/productos.png", 55, 55);
+        JButton btnProductos = Estilos.crearBotonModerno("Productos", iconProductos);
+
+        Icon iconReportes = Estilos.cargarIcono("src/softarrecife/recursos/reportes.png", 55, 55);
+        JButton btnReportes = Estilos.crearBotonModerno("Reportes", iconReportes);
+
+        Icon iconSalir = Estilos.cargarIcono("src/softarrecife/recursos/cerrar.png", 55, 55);
+        JButton btnSalir = Estilos.crearBotonModerno("Cerrar Sesion", iconSalir);
+
+        Icon iconGastos = Estilos.cargarIcono("src/softarrecife/recursos/gasto.png", 55, 55);
+        JButton btnGastos = Estilos.crearBotonModerno("Registrar gasto", iconGastos);
+
+        btnGastos.addActionListener(e -> new gastos(usuarioId, nombreUsuario).setVisible(true));
+        panelBotones.add(btnGastos);
 
         btnTurno.addActionListener(e -> new TurnoFrame(usuarioId));
 
@@ -115,6 +131,7 @@ public class MenuPrincipalFrame extends JFrame {
     }
 
     class PanelConFondo extends JPanel {
+
         private Image fondo;
 
         public PanelConFondo(String ruta) {

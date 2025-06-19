@@ -6,7 +6,6 @@ import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
 
-
 public class Estilos {
 
     public static Font fuenteNormal = new Font("SansSerif", Font.PLAIN, 14);
@@ -22,6 +21,17 @@ public class Estilos {
         boton.setFont(fuenteNormal);
         boton.setBorder(new RoundedBorder(10));
     }
+    
+    public static void estilizarLabel(JLabel label) {
+    label.setFont(fuenteNormal);
+    label.setForeground(grisOscuro);
+}
+    
+    public static void estilizarLabelTitulo(JLabel label) {
+    label.setFont(fuenteTitulo);
+    label.setForeground(new Color(30, 30, 30));
+}
+
 
     public static JButton crearBotonPrincipal(String texto) {
         JButton btn = new JButton(texto);
@@ -31,15 +41,68 @@ public class Estilos {
 
     public static JButton crearBotonSecundario(String texto) {
         JButton btn = new JButton(texto);
-        btn.setBackground(new Color(240, 240, 240));
+        btn.setBackground(new Color(245, 245, 245));
         btn.setForeground(grisOscuro);
         btn.setFocusPainted(false);
-        btn.setFont(fuenteNormal);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                BorderFactory.createEmptyBorder(10, 15, 10, 15)));
+        btn.setFont(new Font("SansSerif", Font.BOLD, 15));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(180, 180, 180), 1, true),
+                new EmptyBorder(15, 25, 15, 25)
+        ));
+        btn.setContentAreaFilled(true);
+        btn.setOpaque(true);
+
+        // Efecto hover
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btn.setBackground(new Color(230, 230, 230));
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btn.setBackground(new Color(245, 245, 245));
+            }
+        });
+
         return btn;
     }
+
+    public static JButton crearBotonModerno(String texto, Icon icono) {
+    JButton boton = new JButton(texto, icono);
+    boton.setHorizontalAlignment(SwingConstants.LEFT);
+    boton.setIconTextGap(12);
+    boton.setFont(new Font("SansSerif", Font.BOLD, 16));
+    boton.setForeground(new Color(40, 40, 40));
+    boton.setBackground(Color.WHITE);
+    boton.setFocusPainted(false);
+    boton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    boton.setOpaque(true);
+
+    // Borde con efecto 3D
+    Border bordeRelieve = BorderFactory.createBevelBorder(BevelBorder.RAISED,
+            new Color(255, 255, 255), // High light
+            new Color(200, 200, 200), // Shadow
+            new Color(160, 160, 160), // Dark shadow
+            new Color(230, 230, 230)  // Light
+    );
+
+    boton.setBorder(BorderFactory.createCompoundBorder(
+            bordeRelieve,
+            new EmptyBorder(12, 20, 12, 20)
+    ));
+
+    // Hover
+    boton.addMouseListener(new MouseAdapter() {
+        public void mouseEntered(MouseEvent e) {
+            boton.setBackground(new Color(245, 245, 245));
+        }
+        public void mouseExited(MouseEvent e) {
+            boton.setBackground(Color.WHITE);
+        }
+    });
+
+    return boton;
+}
 
     public static JButton crearBotonProducto(String texto, ActionListener al) {
         JButton btn = new JButton("<html><center>" + texto + "</center></html>");
@@ -81,6 +144,7 @@ public class Estilos {
         tabla.setGridColor(new Color(230, 230, 230));
         tabla.setSelectionBackground(new Color(180, 205, 255));
         tabla.setSelectionForeground(Color.BLACK);
+        
 
         JTableHeader header = tabla.getTableHeader();
         header.setBackground(azulPrimario);
@@ -94,8 +158,8 @@ public class Estilos {
 
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
-                                                           boolean isSelected, boolean hasFocus,
-                                                           int row, int column) {
+                    boolean isSelected, boolean hasFocus,
+                    int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 if (!isSelected) {
                     c.setBackground(row % 2 == 0 ? color1 : color2);
@@ -112,27 +176,27 @@ public class Estilos {
         return panel;
     }
 
-public static JDialog crearDialogo(Component parent, String titulo, int width, int height) {
-    Window window = SwingUtilities.getWindowAncestor(parent);
-    JDialog dialog;
+    public static JDialog crearDialogo(Component parent, String titulo, int width, int height) {
+        Window window = SwingUtilities.getWindowAncestor(parent);
+        JDialog dialog;
 
-    if (window instanceof Frame) {
-        dialog = new JDialog((Frame) window, titulo, true);
-    } else if (window instanceof Dialog) {
-        dialog = new JDialog((Dialog) window, titulo, true);
-    } else {
-        dialog = new JDialog((Frame) null, titulo, true);
+        if (window instanceof Frame) {
+            dialog = new JDialog((Frame) window, titulo, true);
+        } else if (window instanceof Dialog) {
+            dialog = new JDialog((Dialog) window, titulo, true);
+        } else {
+            dialog = new JDialog((Frame) null, titulo, true);
+        }
+
+        dialog.setSize(width, height);
+        dialog.setLocationRelativeTo(parent);
+        dialog.getContentPane().setBackground(grisClaro);
+        return dialog;
     }
-
-    dialog.setSize(width, height);
-    dialog.setLocationRelativeTo(parent);
-    dialog.getContentPane().setBackground(grisClaro);
-    return dialog;
-}
-
 
     // Borde redondeado reutilizable
     public static class RoundedBorder extends LineBorder {
+
         private int radius;
 
         public RoundedBorder(int radius) {
@@ -144,4 +208,11 @@ public static JDialog crearDialogo(Component parent, String titulo, int width, i
             return new Insets(radius + 2, radius + 5, radius + 2, radius + 5);
         }
     }
+
+    public static Icon cargarIcono(String ruta, int ancho, int alto) {
+        ImageIcon iconoOriginal = new ImageIcon(ruta);
+        Image imagenEscalada = iconoOriginal.getImage().getScaledInstance(ancho, alto, Image.SCALE_SMOOTH);
+        return new ImageIcon(imagenEscalada);
+    }
+
 }

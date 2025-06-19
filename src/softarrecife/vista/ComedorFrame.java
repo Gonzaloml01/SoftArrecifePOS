@@ -2,6 +2,7 @@ package softarrecife.vista;
 
 import softarrecife.conexion.MySQLConnection;
 import softarrecife.utils.WrapLayout;
+import softarrecife.utils.Estilos;
 
 import javax.swing.*;
 import java.awt.*;
@@ -41,19 +42,19 @@ public class ComedorFrame extends JFrame {
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panelBotones.setBackground(fondo);
 
-        JButton btnAgregar = new JButton("➕ Agregar mesa");
+        JButton btnAgregar = Estilos.crearBotonModerno("➕ Agregar mesa", null);
         btnAgregar.setFocusPainted(false);
         btnAgregar.setBackground(primario);
         btnAgregar.setForeground(Color.WHITE);
         btnAgregar.setFont(new Font("SansSerif", Font.BOLD, 13));
         btnAgregar.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
 
-        JButton btnRenombrarMesa = new JButton("✏️ Renombrar Mesa");
+        JButton btnRenombrarMesa = Estilos.crearBotonModerno("✏️ Renombrar Mesa", null);
         btnRenombrarMesa.setFocusPainted(false);
         btnRenombrarMesa.setFont(new Font("SansSerif", Font.BOLD, 13));
         btnRenombrarMesa.setBackground(new Color(200, 200, 255));
 
-        JButton btnCerrarMesa = new JButton("❌ Cerrar Mesa");
+        JButton btnCerrarMesa = Estilos.crearBotonModerno("❌ Cerrar Mesa", null);
         btnCerrarMesa.setFocusPainted(false);
         btnCerrarMesa.setFont(new Font("SansSerif", Font.BOLD, 13));
         btnCerrarMesa.setBackground(new Color(255, 200, 200));
