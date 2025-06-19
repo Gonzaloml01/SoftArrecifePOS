@@ -15,7 +15,6 @@ import softarrecife.ImpresionCerrarCuenta;
 import java.util.List;
 import java.util.ArrayList;
 
-
 public class CuentaFrame extends JFrame {
 
     private int mesaId;
@@ -284,7 +283,7 @@ public class CuentaFrame extends JFrame {
             try {
                 // Obtener detalle de productos de la cuenta
                 List<String> lineas = new ArrayList<>();
-                String detalleSQL = "SELECT p.nombre, dp.cantidad, dp.precio_unitario FROM detalle_cuenta dp JOIN productos p ON dp.producto_id = p.id WHERE dp.cuenta_id = ?";
+                String detalleSQL = "SELECT p.nombre, dc.cantidad, dc.subtotal FROM detalle_cuenta dc JOIN productos p ON dc.producto_id = p.id WHERE dc.cuenta_id = ?";
                 PreparedStatement psDetalle = conn.prepareStatement(detalleSQL);
                 psDetalle.setInt(1, cuentaId);
                 ResultSet rs = psDetalle.executeQuery();
@@ -292,8 +291,8 @@ public class CuentaFrame extends JFrame {
                 while (rs.next()) {
                     String nombre = rs.getString("nombre");
                     int cant = rs.getInt("cantidad");
-                    double precio = rs.getDouble("precio_unitario") * cant;
-                    String linea = String.format("%-15s x%-2d $%.2f", nombre, cant, precio);
+                    double totalLinea = rs.getDouble("subtotal");
+                    String linea = String.format("%-15s x%-2d $%.2f", nombre, cant, totalLinea);
                     lineas.add(linea);
                 }
 
