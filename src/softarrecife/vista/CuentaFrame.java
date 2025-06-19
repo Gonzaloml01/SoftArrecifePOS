@@ -1,19 +1,18 @@
 package softarrecife.vista;
 
 import softarrecife.conexion.MySQLConnection;
+import softarrecife.utils.TicketPrinter;
+import softarrecife.ImpresionCerrarCuenta;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.sql.*;
-import java.time.LocalDateTime;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
-import softarrecife.utils.TicketPrinter;
-import softarrecife.ImpresionCerrarCuenta;
-import java.util.List;
+import java.awt.*;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.List;
 
 public class CuentaFrame extends JFrame {
 
@@ -42,6 +41,10 @@ public class CuentaFrame extends JFrame {
         setVisible(true);
     }
 
+    public String getNombreMesa() {
+        return mesaNombre;
+    }
+
     private String obtenerNombreMesero() {
         try (Connection conn = MySQLConnection.getConnection()) {
             String sql = "SELECT u.nombre FROM cuentas c JOIN usuarios u ON c.usuario_id = u.id WHERE c.id = ?";
@@ -57,6 +60,10 @@ public class CuentaFrame extends JFrame {
         return "Desconocido";
     }
 
+    public String getUsuarioActual() {
+        return obtenerNombreMesero();
+    }
+
     private void construirUI() {
         Color verde = new Color(46, 125, 50);
         Color fondo = new Color(245, 245, 245);
@@ -67,18 +74,17 @@ public class CuentaFrame extends JFrame {
         panelTop.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         JButton btnAgregar = new JButton("➕ Agregar producto");
-        btnAgregar.setBackground(new Color(30, 144, 255));
-        btnAgregar.setForeground(Color.WHITE);
-        btnAgregar.setFocusPainted(false);
-        btnAgregar.setFont(fuente);
-        btnAgregar.setPreferredSize(new Dimension(180, 35));
-
         btnAgregar.addActionListener(e -> {
             SelectorProductoDialog selector = new SelectorProductoDialog(this, cuentaId);
             selector.setModal(true);
             selector.setVisible(true);
             cargarDetalleCuenta();
         });
+        btnAgregar.setBackground(new Color(30, 144, 255));
+        btnAgregar.setForeground(Color.WHITE);
+        btnAgregar.setFocusPainted(false);
+        btnAgregar.setFont(fuente);
+        btnAgregar.setPreferredSize(new Dimension(180, 35));
 
         panelTop.add(btnAgregar);
         add(panelTop, BorderLayout.NORTH);
@@ -90,23 +96,32 @@ public class CuentaFrame extends JFrame {
         scroll.setBorder(BorderFactory.createEmptyBorder());
         add(scroll, BorderLayout.CENTER);
 
-        JPanel panelBottom = new JPanel(new BorderLayout());
+        JPanel panelBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         panelBottom.setBorder(new EmptyBorder(10, 10, 10, 10));
         panelBottom.setBackground(fondo);
 
         lblTotal = new JLabel("Total: $0.00");
         lblTotal.setFont(new Font("SansSerif", Font.BOLD, 18));
-        panelBottom.add(lblTotal, BorderLayout.CENTER);
+        panelBottom.add(lblTotal);
 
-        JButton btnCobrar = new JButton("💳 Imprimir ticket y cerrar cuenta");
+        JButton btnTicket = new JButton("🧾 Imprimir ticket");
+        btnTicket.setBackground(new Color(100, 149, 237));
+        btnTicket.setForeground(Color.WHITE);
+        btnTicket.setFocusPainted(false);
+        btnTicket.setFont(fuente);
+        btnTicket.setPreferredSize(new Dimension(180, 35));
+        btnTicket.addActionListener(e -> imprimirTicketCliente());
+
+        JButton btnCobrar = new JButton("💳 Cobrar y cerrar cuenta");
         btnCobrar.setBackground(verde);
         btnCobrar.setForeground(Color.WHITE);
         btnCobrar.setFocusPainted(false);
         btnCobrar.setFont(fuente);
-        btnCobrar.setPreferredSize(new Dimension(250, 40));
-        btnCobrar.addActionListener(e -> cerrarCuentaEImprimir());
-        panelBottom.add(btnCobrar, BorderLayout.EAST);
+        btnCobrar.setPreferredSize(new Dimension(220, 35));
+        btnCobrar.addActionListener(e -> cerrarCuentaYRegistrarPago());
 
+        panelBottom.add(btnTicket);
+        panelBottom.add(btnCobrar);
         add(panelBottom, BorderLayout.SOUTH);
     }
 
@@ -150,9 +165,9 @@ public class CuentaFrame extends JFrame {
 
             while (rs.next()) {
                 model.addRow(new Object[]{
-                    rs.getString("nombre"),
-                    rs.getInt("cantidad"),
-                    rs.getDouble("subtotal")
+                        rs.getString("nombre"),
+                        rs.getInt("cantidad"),
+                        rs.getDouble("subtotal")
                 });
                 total += rs.getDouble("subtotal");
             }
@@ -163,7 +178,7 @@ public class CuentaFrame extends JFrame {
 
         tabla.setModel(model);
         lblTotal.setText("Total: $" + String.format("%.2f", total));
-        // Personalizar tabla visualmente
+
         tabla.setRowHeight(28);
         tabla.setFont(new Font("SansSerif", Font.PLAIN, 14));
         tabla.setGridColor(new Color(230, 230, 230));
@@ -176,15 +191,12 @@ public class CuentaFrame extends JFrame {
         header.setFont(new Font("SansSerif", Font.BOLD, 14));
         header.setReorderingAllowed(false);
 
-        // Alternancia de color en filas
         tabla.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             private final Color color1 = new Color(245, 245, 245);
             private final Color color2 = new Color(230, 230, 230);
 
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                    boolean isSelected, boolean hasFocus,
-                    int row, int column) {
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 if (!isSelected) {
                     c.setBackground(row % 2 == 0 ? color1 : color2);
@@ -194,14 +206,35 @@ public class CuentaFrame extends JFrame {
         });
     }
 
-    private void cerrarCuentaEImprimir() {
-        String[] opciones = {"Efectivo", "Tarjeta", "Transferencia"};
-        String metodo = (String) JOptionPane.showInputDialog(this, "Método de pago:",
-                "Cobro", JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
+    private void imprimirTicketCliente() {
+        try (Connection conn = MySQLConnection.getConnection()) {
+            List<String> lineas = new ArrayList<>();
+            String detalleSQL = "SELECT p.nombre, dc.cantidad, dc.subtotal FROM detalle_cuenta dc JOIN productos p ON dc.producto_id = p.id WHERE dc.cuenta_id = ?";
+            PreparedStatement psDetalle = conn.prepareStatement(detalleSQL);
+            psDetalle.setInt(1, cuentaId);
+            ResultSet rs = psDetalle.executeQuery();
 
-        if (metodo == null) {
-            return;
+            double total = 0;
+            while (rs.next()) {
+                String nombre = rs.getString("nombre");
+                int cant = rs.getInt("cantidad");
+                double subtotal = rs.getDouble("subtotal");
+                total += subtotal;
+                String linea = String.format("%-15s x%-2d $%.2f", nombre, cant, subtotal);
+                lineas.add(linea);
+            }
+
+            ImpresionCerrarCuenta.imprimirTicket(lineas, total, 0, total, "PENDIENTE");
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al imprimir ticket: " + e.getMessage());
         }
+    }
+
+    private void cerrarCuentaYRegistrarPago() {
+        String[] opciones = {"Efectivo", "Tarjeta", "Transferencia"};
+        String metodo = (String) JOptionPane.showInputDialog(this, "Método de pago:", "Cobro", JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
+        if (metodo == null) return;
 
         double total = calcularTotalCuenta();
         double montoPagado = total;
@@ -209,9 +242,7 @@ public class CuentaFrame extends JFrame {
 
         if (metodo.equals("Efectivo")) {
             String pagadoStr = JOptionPane.showInputDialog(this, "¿Con cuánto pagó el cliente?");
-            if (pagadoStr == null) {
-                return;
-            }
+            if (pagadoStr == null) return;
             try {
                 montoPagado = Double.parseDouble(pagadoStr);
                 cambio = montoPagado - total;
@@ -221,13 +252,10 @@ public class CuentaFrame extends JFrame {
             }
         }
 
-        // Preguntar propina
-        String[] tipoPropina = {"% Porcentaje", "$ Monto fijo", "Sin propina"};
-        int opcionPropina = JOptionPane.showOptionDialog(this, "¿El cliente dejó propina?",
-                "Propina", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null,
-                tipoPropina, tipoPropina[0]);
-
         double propina = 0;
+        String[] tipoPropina = {"% Porcentaje", "$ Monto fijo", "Sin propina"};
+        int opcionPropina = JOptionPane.showOptionDialog(this, "¿El cliente dejó propina?", "Propina", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, tipoPropina, tipoPropina[0]);
+
         if (opcionPropina == 0) {
             String propinaStr = JOptionPane.showInputDialog(this, "¿Qué porcentaje dejó?");
             if (propinaStr != null) {
@@ -263,48 +291,22 @@ public class CuentaFrame extends JFrame {
             ps.setInt(1, mesaId);
             ps.executeUpdate();
 
-            // Mostrar resumen
-            String resumen = """
-                --- Ticket Final ---
-                Método de pago: %s
-                Total: $%.2f
-                Propina: $%.2f
-                Monto pagado: $%.2f
-                Cambio: $%.2f
-                ---------------------
-                ¡Gracias por su visita!
-                """.formatted(metodo, total, propina, montoPagado, cambio);
+            double totalConPropina = total + propina;
+            List<String> lineas = new ArrayList<>();
+            String detalleSQL = "SELECT p.nombre, dc.cantidad, dc.subtotal FROM detalle_cuenta dc JOIN productos p ON dc.producto_id = p.id WHERE dc.cuenta_id = ?";
+            PreparedStatement psDetalle = conn.prepareStatement(detalleSQL);
+            psDetalle.setInt(1, cuentaId);
+            ResultSet rs = psDetalle.executeQuery();
 
-            JTextArea text = new JTextArea(resumen);
-            text.setFont(new Font("Monospaced", Font.PLAIN, 14));
-            text.setEditable(false);
-            JOptionPane.showMessageDialog(this, new JScrollPane(text), "Resumen de cuenta", JOptionPane.INFORMATION_MESSAGE);
-
-            try {
-                // Obtener detalle de productos de la cuenta
-                List<String> lineas = new ArrayList<>();
-                String detalleSQL = "SELECT p.nombre, dc.cantidad, dc.subtotal FROM detalle_cuenta dc JOIN productos p ON dc.producto_id = p.id WHERE dc.cuenta_id = ?";
-                PreparedStatement psDetalle = conn.prepareStatement(detalleSQL);
-                psDetalle.setInt(1, cuentaId);
-                ResultSet rs = psDetalle.executeQuery();
-
-                while (rs.next()) {
-                    String nombre = rs.getString("nombre");
-                    int cant = rs.getInt("cantidad");
-                    double totalLinea = rs.getDouble("subtotal");
-                    String linea = String.format("%-15s x%-2d $%.2f", nombre, cant, totalLinea);
-                    lineas.add(linea);
-                }
-
-                // Total con propina ya sumada
-                double totalConPropina = total + propina;
-
-                // Imprimir ticket profesional
-                ImpresionCerrarCuenta.imprimirTicket(lineas, total, propina, totalConPropina, metodo);
-
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error al imprimir ticket: " + ex.getMessage());
+            while (rs.next()) {
+                String nombre = rs.getString("nombre");
+                int cant = rs.getInt("cantidad");
+                double subtotal = rs.getDouble("subtotal");
+                String linea = String.format("%-15s x%-2d $%.2f", nombre, cant, subtotal);
+                lineas.add(linea);
             }
+
+            ImpresionCerrarCuenta.imprimirTicket(lineas, total, propina, totalConPropina, metodo);
 
             dispose();
             if (comedorFrame != null) {

@@ -2,11 +2,17 @@ package softarrecife.vista;
 
 import softarrecife.conexion.MySQLConnection;
 import softarrecife.utils.Estilos;
+import softarrecife.utils.ImpresionComanda;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.sql.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 public class SelectorProductoDialog extends JDialog {
 
@@ -14,21 +20,21 @@ public class SelectorProductoDialog extends JDialog {
     private CuentaFrame cuentaFrame;
     private JPanel panelCentral;
     private CardLayout cardLayout;
+    private List<ProductoSeleccionado> productosSeleccionados = new ArrayList<>();
 
     public SelectorProductoDialog(CuentaFrame cuentaFrame, int cuentaId) {
         super(cuentaFrame, "Seleccionar producto", true);
         this.cuentaId = cuentaId;
         this.cuentaFrame = cuentaFrame;
+
         setSize(800, 600);
         setLocationRelativeTo(cuentaFrame);
         setLayout(new BorderLayout());
-        getContentPane().setBackground(Estilos.grisClaro
-        );
+        getContentPane().setBackground(Estilos.grisClaro);
 
         JPanel panelCategorias = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         panelCategorias.setBorder(new EmptyBorder(10, 10, 10, 10));
-        panelCategorias.setBackground(Estilos.grisClaro
-        );
+        panelCategorias.setBackground(Estilos.grisClaro);
 
         String[] categorias = {"Bebidas", "Comida", "Postres", "Extras"};
         for (String cat : categorias) {
@@ -45,25 +51,32 @@ public class SelectorProductoDialog extends JDialog {
         add(panelCentral, BorderLayout.CENTER);
 
         crearPanelSubcategorias();
-        setVisible(true);
+
+        // Escuchar cierre de ventana para imprimir
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                imprimirComandas();
+            }
+        });
     }
 
     private void crearPanelSubcategorias() {
         panelCentral.add(crearPanel("Bebidas", new String[]{
-            "Litros preparados", "Cocteles en copa", "Shots", "Cerveza",
-            "Refrescos", "Jugos naturales", "Smoothies", "Limonadas / Naranjadas"
+                "Litros preparados", "Cocteles en copa", "Shots", "Cerveza",
+                "Refrescos", "Jugos naturales", "Smoothies", "Limonadas / Naranjadas"
         }), "Bebidas");
 
         panelCentral.add(crearPanel("Comida", new String[]{
-            "Mariscos", "Antojitos / Tacos", "Hamburguesas", "Botanas", "Ceviches / Tostadas"
+                "Mariscos", "Antojitos / Tacos", "Hamburguesas", "Botanas", "Ceviches / Tostadas"
         }), "Comida");
 
         panelCentral.add(crearPanel("Postres", new String[]{
-            "Pasteles", "Helados / Nieves", "Malteadas dulces"
+                "Pasteles", "Helados / Nieves", "Malteadas dulces"
         }), "Postres");
 
         panelCentral.add(crearPanel("Extras", new String[]{
-            "Promociones", "Desayunos", "Eventos especiales"
+                "Promociones", "Desayunos", "Eventos especiales"
         }), "Extras");
     }
 
@@ -99,9 +112,7 @@ public class SelectorProductoDialog extends JDialog {
 
             while (rs.next()) {
                 String tipo = rs.getString("tipo");
-                if (tipo == null || tipo.isBlank()) {
-                    continue;
-                }
+                if (tipo == null || tipo.isBlank()) continue;
 
                 JButton btn = Estilos.crearBotonSecundario(tipo);
                 btn.addActionListener(e -> {
@@ -140,9 +151,8 @@ public class SelectorProductoDialog extends JDialog {
                 JButton btn = Estilos.crearBotonProducto(
                         nombre + "<br>$" + precio,
                         e -> {
-                            agregarProductoACuenta(idProd, precio);
+                            agregarProductoACuenta(idProd, precio, categoria);
                             dialogoProductos.dispose();
-                            this.dispose();
                         }
                 );
 
@@ -156,7 +166,7 @@ public class SelectorProductoDialog extends JDialog {
         dialogoProductos.setVisible(true);
     }
 
-    private void agregarProductoACuenta(int productoId, double precio) {
+    private void agregarProductoACuenta(int productoId, double precio, String categoria) {
         try (Connection conn = MySQLConnection.getConnection()) {
             String insert = "INSERT INTO detalle_cuenta (cuenta_id, producto_id, cantidad, subtotal) VALUES (?, ?, 1, ?)";
             PreparedStatement ps = conn.prepareStatement(insert);
@@ -171,8 +181,54 @@ public class SelectorProductoDialog extends JDialog {
             ps.setInt(2, cuentaId);
             ps.executeUpdate();
 
+            String nombreProducto = obtenerNombreProducto(conn, productoId);
+            productosSeleccionados.add(new ProductoSeleccionado(nombreProducto + " x1", categoria));
+
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error al agregar: " + e.getMessage());
+        }
+    }
+
+    private void imprimirComandas() {
+        if (productosSeleccionados.isEmpty()) return;
+
+        String nombreMesa = cuentaFrame.getNombreMesa();
+        String mesero = cuentaFrame.getUsuarioActual();
+
+        List<String> bebidas = productosSeleccionados.stream()
+                .filter(p -> p.categoria.equalsIgnoreCase("Bebidas"))
+                .map(p -> p.nombre)
+                .collect(Collectors.toList());
+
+        List<String> otros = productosSeleccionados.stream()
+                .filter(p -> !p.categoria.equalsIgnoreCase("Bebidas"))
+                .map(p -> p.nombre)
+                .collect(Collectors.toList());
+
+        if (!bebidas.isEmpty()) ImpresionComanda.imprimir(nombreMesa, mesero, bebidas);
+        if (!otros.isEmpty()) ImpresionComanda.imprimir(nombreMesa, mesero, otros);
+
+        productosSeleccionados.clear();
+    }
+
+    private String obtenerNombreProducto(Connection conn, int productoId) throws SQLException {
+        String sql = "SELECT nombre FROM productos WHERE id = ?";
+        PreparedStatement ps = conn.prepareStatement(sql);
+        ps.setInt(1, productoId);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            return rs.getString("nombre");
+        }
+        return "Producto";
+    }
+
+    private static class ProductoSeleccionado {
+        String nombre;
+        String categoria;
+
+        public ProductoSeleccionado(String nombre, String categoria) {
+            this.nombre = nombre;
+            this.categoria = categoria;
         }
     }
 }
