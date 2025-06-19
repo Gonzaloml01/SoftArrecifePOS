@@ -224,7 +224,8 @@ public class CuentaFrame extends JFrame {
                 lineas.add(linea);
             }
 
-            ImpresionCerrarCuenta.imprimirTicket(lineas, total, 0, total, "PENDIENTE");
+            // No se abre la caja registradora al imprimir el ticket
+            ImpresionCerrarCuenta.imprimirTicketSinAbrirCaja(lineas, total, 0, total, "PENDIENTE");
 
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error al imprimir ticket: " + e.getMessage());
@@ -306,6 +307,7 @@ public class CuentaFrame extends JFrame {
                 lineas.add(linea);
             }
 
+            // Este sí abre la caja al imprimir el ticket final
             ImpresionCerrarCuenta.imprimirTicket(lineas, total, propina, totalConPropina, metodo);
 
             dispose();
