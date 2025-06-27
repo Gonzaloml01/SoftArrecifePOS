@@ -24,94 +24,94 @@ public class ComedorFrame extends JFrame {
     private final List<JButton> botonesSeleccionados = new ArrayList<>();
     private final List<Integer> idsSeleccionados = new ArrayList<>();
 
-   public ComedorFrame(int usuarioId, String nombreMesero, String tipoUsuario) {
-    this.usuarioId = usuarioId;
-    this.nombreMesero = nombreMesero;
-    this.tipoUsuario = tipoUsuario;
+    public ComedorFrame(int usuarioId, String nombreMesero, String tipoUsuario) {
+        this.usuarioId = usuarioId;
+        this.nombreMesero = nombreMesero;
+        this.tipoUsuario = tipoUsuario;
 
-    setTitle("Summa POS - Comedor de " + nombreMesero);
-    setSize(900, 600);
-    setLocationRelativeTo(null);
-    setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-    setLayout(new BorderLayout());
+        setTitle("Summa POS - Comedor de " + nombreMesero);
+        setSize(900, 600);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
 
-    // COLORES
-    Color fondo = new Color(245, 245, 245);
-    Color azulSuave = new Color(100, 149, 237); // azul cornflower
-    Color rojoSuave = new Color(255, 160, 160); // rojo pastel suave
+        // COLORES
+        Color fondo = new Color(245, 245, 245);
+        Color azulSuave = new Color(100, 149, 237); // azul cornflower
+        Color rojoSuave = new Color(255, 160, 160); // rojo pastel suave
 
-    // ========== PANEL HEADER (Título y línea) ==========
-    JPanel panelHeader = new JPanel(new BorderLayout());
-    panelHeader.setBackground(new Color(240, 240, 240));
+        // ========== PANEL HEADER (Título y línea) ==========
+        JPanel panelHeader = new JPanel(new BorderLayout());
+        panelHeader.setBackground(new Color(240, 240, 240));
 
-    JLabel lblTitulo = new JLabel("Comedor de Gonzalo", SwingConstants.CENTER);
-    lblTitulo.setFont(new Font("SansSerif", Font.BOLD, 20));
-    lblTitulo.setForeground(Color.DARK_GRAY);
-    lblTitulo.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
+        JLabel lblTitulo = new JLabel("Comedor de Gonzalo", SwingConstants.CENTER);
+        lblTitulo.setFont(new Font("SansSerif", Font.BOLD, 20));
+        lblTitulo.setForeground(Color.DARK_GRAY);
+        lblTitulo.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
 
-    JPanel lineaSeparadora = new JPanel();
-    lineaSeparadora.setBackground(new Color(180, 180, 180));
-    lineaSeparadora.setPreferredSize(new Dimension(1, 2));
+        JPanel lineaSeparadora = new JPanel();
+        lineaSeparadora.setBackground(new Color(180, 180, 180));
+        lineaSeparadora.setPreferredSize(new Dimension(1, 2));
 
-    panelHeader.add(lblTitulo, BorderLayout.CENTER);
-    panelHeader.add(lineaSeparadora, BorderLayout.SOUTH);
+        panelHeader.add(lblTitulo, BorderLayout.CENTER);
+        panelHeader.add(lineaSeparadora, BorderLayout.SOUTH);
 
-    // ========== PANEL BOTONES ==========
-    JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.LEFT));
-    panelBotones.setBackground(fondo);
+        // ========== PANEL BOTONES ==========
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panelBotones.setBackground(fondo);
 
-    JButton btnAgregar = Estilos.crearBotonModernoFijo("➕ Agregar mesa", azulSuave);
-    JButton btnRenombrarMesa = Estilos.crearBotonModernoFijo("➖ Renombrar Mesa", azulSuave);
-    JButton btnCerrarMesa = Estilos.crearBotonModernoFijo("❌ Cerrar Mesa", rojoSuave);
+        JButton btnAgregar = Estilos.crearBotonModernoFijo("➕ Agregar mesa", azulSuave);
+        JButton btnRenombrarMesa = Estilos.crearBotonModernoFijo("➖ Renombrar Mesa", azulSuave);
+        JButton btnCerrarMesa = Estilos.crearBotonModernoFijo("❌ Cerrar Mesa", rojoSuave);
 
-    panelBotones.add(btnAgregar);
-    panelBotones.add(btnRenombrarMesa);
-    panelBotones.add(btnCerrarMesa);
+        panelBotones.add(btnAgregar);
+        panelBotones.add(btnRenombrarMesa);
+        panelBotones.add(btnCerrarMesa);
 
-    // ========== PANEL MESAS ==========
-    panelMesas = new JPanel(new WrapLayout(FlowLayout.LEFT, 12, 12));
-    panelMesas.setBackground(fondo);
+        // ========== PANEL MESAS ==========
+        panelMesas = new JPanel(new WrapLayout(FlowLayout.LEFT, 12, 12));
+        panelMesas.setBackground(fondo);
 
-    JScrollPane scroll = new JScrollPane(panelMesas);
-    scroll.setBorder(BorderFactory.createEmptyBorder());
+        JScrollPane scroll = new JScrollPane(panelMesas);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
 
-    // ========== PANEL CONTENIDO CENTRAL (Botones + mesas) ==========
-    JPanel panelCentral = new JPanel(new BorderLayout());
-    panelCentral.setBackground(fondo);
-    panelCentral.add(panelBotones, BorderLayout.NORTH);
-    panelCentral.add(scroll, BorderLayout.CENTER);
+        // ========== PANEL CONTENIDO CENTRAL (Botones + mesas) ==========
+        JPanel panelCentral = new JPanel(new BorderLayout());
+        panelCentral.setBackground(fondo);
+        panelCentral.add(panelBotones, BorderLayout.NORTH);
+        panelCentral.add(scroll, BorderLayout.CENTER);
 
-    // ========== AGREGAR TODO ==========
-    add(panelHeader, BorderLayout.NORTH);
-    add(panelCentral, BorderLayout.CENTER);
+        // ========== AGREGAR TODO ==========
+        add(panelHeader, BorderLayout.NORTH);
+        add(panelCentral, BorderLayout.CENTER);
 
-    // ========== EVENTOS ==========
-    btnAgregar.addActionListener(e -> agregarMesa());
+        // ========== EVENTOS ==========
+        btnAgregar.addActionListener(e -> agregarMesa());
 
-    btnRenombrarMesa.addActionListener(e -> {
-        modoEliminarActivo = false;
-        modoRenombrarActivo = true;
-        limpiarSeleccion();
-        JOptionPane.showMessageDialog(this, "Toca la mesa que deseas renombrar.");
-    });
+        btnRenombrarMesa.addActionListener(e -> {
+            modoEliminarActivo = false;
+            modoRenombrarActivo = true;
+            limpiarSeleccion();
+            JOptionPane.showMessageDialog(this, "Toca la mesa que deseas renombrar.");
+        });
 
-    btnCerrarMesa.addActionListener(e -> {
-        modoEliminarActivo = true;
-        modoRenombrarActivo = false;
-        limpiarSeleccion();
-        JOptionPane.showMessageDialog(this, "Selecciona las mesas a cerrar tocándolas.");
-    });
+        btnCerrarMesa.addActionListener(e -> {
+            modoEliminarActivo = true;
+            modoRenombrarActivo = false;
+            limpiarSeleccion();
+            JOptionPane.showMessageDialog(this, "Selecciona las mesas a cerrar tocándolas.");
+        });
 
-    // Cargar las mesas
-    cargarMesas();
+        // Cargar las mesas
+        cargarMesas();
 
-    // Mostrar ventana
-    setVisible(true);
-    setAlwaysOnTop(true);
-    toFront();
-    requestFocus();
-    setAlwaysOnTop(false);
-}
+        // Mostrar ventana
+        setVisible(true);
+        setAlwaysOnTop(true);
+        toFront();
+        requestFocus();
+        setAlwaysOnTop(false);
+    }
 
     public int getUsuarioId() {
         return usuarioId;
@@ -242,13 +242,15 @@ public class ComedorFrame extends JFrame {
                     return;
                 }
 
-                PreparedStatement psEliminarCuenta = conn.prepareStatement("DELETE FROM cuentas WHERE id = ?");
-                psEliminarCuenta.setInt(1, cuentaId);
-                psEliminarCuenta.executeUpdate();
+                String updateCuenta = "UPDATE cuentas SET estado = 'cerrada' WHERE id = ?";
+                PreparedStatement psCerrarCuenta = conn.prepareStatement(updateCuenta);
+                psCerrarCuenta.setInt(1, cuentaId);
+                psCerrarCuenta.executeUpdate();
 
-                PreparedStatement psEliminarMesa = conn.prepareStatement("DELETE FROM mesas WHERE id = ?");
-                psEliminarMesa.setInt(1, mesaId);
-                psEliminarMesa.executeUpdate();
+                String liberarMesa = "UPDATE mesas SET estado = 'libre' WHERE id = ?";
+                PreparedStatement psLiberarMesa = conn.prepareStatement(liberarMesa);
+                psLiberarMesa.setInt(1, mesaId);
+                psLiberarMesa.executeUpdate();
 
                 JOptionPane.showMessageDialog(this,
                         "La cuenta estaba vacía. Mesa eliminada exitosamente.",

@@ -106,38 +106,38 @@ public class LoginFrame extends JFrame {
         });
     }
 
-    private void validarLogin() {
-        String usuario = txtUsuario.getText();
-        String pass = String.valueOf(txtPassword.getPassword());
+  private void validarLogin() {
+    String usuario = txtUsuario.getText();
+    String pass = String.valueOf(txtPassword.getPassword());
 
-        if (usuario.equals("Usuario") || pass.equals("Contraseña")) {
-            JOptionPane.showMessageDialog(this, "Por favor ingresa tus credenciales.");
-            return;
-        }
-
-        try (Connection conn = MySQLConnection.getConnection()) {
-            String query = "SELECT * FROM usuarios WHERE usuario = ? AND contrasena = ?";
-            PreparedStatement ps = conn.prepareStatement(query);
-            ps.setString(1, usuario);
-            ps.setString(2, pass);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                Sesion.usuarioId = rs.getInt("id");
-                Sesion.nombre = rs.getString("nombre");
-                Sesion.tipo = rs.getString("tipo");
-
-                JOptionPane.showMessageDialog(this, "¡Bienvenido, " + Sesion.nombre + "!");
-                dispose();
-                new MenuPrincipalFrame(Sesion.usuarioId, Sesion.nombre, Sesion.tipo);
-            } else {
-                JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos");
-            }
-
-        } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
-        }
+    if (usuario.equals("Usuario") || pass.equals("Contraseña")) {
+        JOptionPane.showMessageDialog(this, "Por favor ingresa tus credenciales.");
+        return;
     }
+
+    try (Connection conn = MySQLConnection.getConnection()) {
+        String query = "SELECT * FROM usuarios WHERE BINARY usuario = ? AND BINARY contrasena = ?";
+        PreparedStatement ps = conn.prepareStatement(query);
+        ps.setString(1, usuario);
+        ps.setString(2, pass);
+        ResultSet rs = ps.executeQuery();
+
+        if (rs.next()) {
+            Sesion.usuarioId = rs.getInt("id");
+            Sesion.nombre = rs.getString("nombre");
+            Sesion.tipo = rs.getString("tipo");
+
+            JOptionPane.showMessageDialog(this, "¡Bienvenido, " + Sesion.nombre + "!");
+            dispose();
+            new MenuPrincipalFrame(Sesion.usuarioId, Sesion.nombre, Sesion.tipo);
+        } else {
+            JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos");
+        }
+
+    } catch (SQLException ex) {
+        JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+    }
+}
 
     // Borde redondeado personalizado
     class RoundedBorder extends LineBorder {

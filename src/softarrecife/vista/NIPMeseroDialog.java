@@ -36,6 +36,7 @@ public class NIPMeseroDialog extends JDialog {
         txtNip.putClientProperty("JTextField.placeholderText", "Ingresa tu NIP");
 
         JButton btnAceptar = new JButton("Ingresar");
+        txtNip.addActionListener(e -> btnAceptar.doClick());
         btnAceptar.setFocusPainted(false);
         btnAceptar.setBackground(primario);
         btnAceptar.setForeground(Color.WHITE);

@@ -16,27 +16,32 @@ public class TurnoFrame extends JFrame {
 
     private int usuarioId;
 
-    public TurnoFrame(int usuarioId) {
-        this.usuarioId = usuarioId;
+  public TurnoFrame(int usuarioId) {
+    this.usuarioId = usuarioId;
 
-        setTitle("Gestión de Turnos");
-        setSize(400, 200);
-        setLocationRelativeTo(null);
-        setLayout(new FlowLayout());
+    setTitle("Gestión de Turnos");
+    setSize(300, 150);
+    setLocationRelativeTo(null);
+    setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+    // Panel principal con BorderLayout
+    setLayout(new BorderLayout());
 
-        JButton btnAbrir = new JButton("🔓 Abrir turno");
-        JButton btnCerrar = new JButton("🔒 Cerrar turno");
+    // Panel centrado con los botones
+    JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 40)); // margen opcional
+    JButton btnAbrir = new JButton("🔓 Abrir turno");
+    JButton btnCerrar = new JButton("🔒 Cerrar turno");
 
-        btnAbrir.addActionListener(e -> abrirTurno());
-        btnCerrar.addActionListener(e -> cerrarTurno());
+    btnAbrir.addActionListener(e -> abrirTurno());
+    btnCerrar.addActionListener(e -> cerrarTurno());
 
-        add(btnAbrir);
-        add(btnCerrar);
+    panelBotones.add(btnAbrir);
+    panelBotones.add(btnCerrar);
 
-        setVisible(true);
-    }
+    add(panelBotones, BorderLayout.CENTER);
+
+    setVisible(true);
+}
 
     private boolean hayTurnoAbierto() {
         try (Connection conn = MySQLConnection.getConnection()) {

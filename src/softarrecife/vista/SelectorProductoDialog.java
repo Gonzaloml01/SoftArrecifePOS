@@ -7,8 +7,7 @@ import softarrecife.utils.ImpresionComanda;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.sql.*;
 import java.util.List;
 import java.util.ArrayList;
@@ -51,14 +50,6 @@ public class SelectorProductoDialog extends JDialog {
         add(panelCentral, BorderLayout.CENTER);
 
         crearPanelSubcategorias();
-
-        // Escuchar cierre de ventana para imprimir
-//        addWindowListener(new WindowAdapter() {
-//            @Override
-//            public void windowClosed(WindowEvent e) {
-//                imprimirComandas();
-//            }
-//        });
     }
 
     private void crearPanelSubcategorias() {
@@ -150,10 +141,7 @@ public class SelectorProductoDialog extends JDialog {
 
                 JButton btn = Estilos.crearBotonProducto(
                         nombre + "<br>$" + precio,
-                        e -> {
-                            agregarProductoACuenta(idProd, precio, categoria);
-                            dialogoProductos.dispose();
-                        }
+                        e -> abrirDialogoCantidadYComentario(idProd, precio, categoria, nombre)
                 );
 
                 dialogoProductos.add(btn);
@@ -166,60 +154,85 @@ public class SelectorProductoDialog extends JDialog {
         dialogoProductos.setVisible(true);
     }
 
-    private void agregarProductoACuenta(int productoId, double precio, String categoria) {
-        try (Connection conn = MySQLConnection.getConnection()) {
-            String insert = "INSERT INTO detalle_cuenta (cuenta_id, producto_id, cantidad, subtotal) VALUES (?, ?, 1, ?)";
-            PreparedStatement ps = conn.prepareStatement(insert);
-            ps.setInt(1, cuentaId);
-            ps.setInt(2, productoId);
-            ps.setDouble(3, precio);
-            ps.executeUpdate();
+    private void abrirDialogoCantidadYComentario(int productoId, double precio, String categoria, String nombreProducto) {
+        JDialog dialog = new JDialog(this, nombreProducto, true);
+        dialog.setSize(350, 250);
+        dialog.setLayout(new BorderLayout());
+        dialog.setLocationRelativeTo(this);
 
-            String update = "UPDATE cuentas SET total = total + ? WHERE id = ?";
-            ps = conn.prepareStatement(update);
-            ps.setDouble(1, precio);
-            ps.setInt(2, cuentaId);
-            ps.executeUpdate();
+        JPanel panel = new JPanel(new GridLayout(3, 1, 10, 10));
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-            String nombreProducto = obtenerNombreProducto(conn, productoId);
-            productosSeleccionados.add(new ProductoSeleccionado(nombreProducto + " x1", categoria));
+        // Cantidad
+        JPanel cantidadPanel = new JPanel(new FlowLayout());
+        JLabel lblCantidad = new JLabel("Cantidad:");
+        JTextField txtCantidad = new JTextField("1", 3);
+        JButton btnMenos = new JButton("-");
+        JButton btnMas = new JButton("+");
 
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error al agregar: " + e.getMessage());
-        }
-    }
+        btnMenos.addActionListener(e -> {
+            int actual = Integer.parseInt(txtCantidad.getText());
+            if (actual > 1) {
+                txtCantidad.setText(String.valueOf(actual - 1));
+            }
+        });
 
-    private void imprimirComandas() {
-        if (productosSeleccionados.isEmpty()) return;
+        btnMas.addActionListener(e -> {
+            int actual = Integer.parseInt(txtCantidad.getText());
+            txtCantidad.setText(String.valueOf(actual + 1));
+        });
 
-        String nombreMesa = cuentaFrame.getNombreMesa();
-        String mesero = cuentaFrame.getUsuarioActual();
+        cantidadPanel.add(lblCantidad);
+        cantidadPanel.add(btnMenos);
+        cantidadPanel.add(txtCantidad);
+        cantidadPanel.add(btnMas);
 
-        List<String> bebidas = productosSeleccionados.stream()
-                .filter(p -> p.categoria.equalsIgnoreCase("Bebidas"))
-                .map(p -> p.nombre)
-                .collect(Collectors.toList());
+        // Comentario
+        JTextField txtComentario = new JTextField();
+        txtComentario.setBorder(BorderFactory.createTitledBorder("Comentario (opcional)"));
 
-        List<String> otros = productosSeleccionados.stream()
-                .filter(p -> !p.categoria.equalsIgnoreCase("Bebidas"))
-                .map(p -> p.nombre)
-                .collect(Collectors.toList());
+        // Botón agregar
+        JButton btnAgregar = new JButton("Agregar a cuenta");
+        btnAgregar.addActionListener(e -> {
+            try {
+                int cantidad = Integer.parseInt(txtCantidad.getText());
+                double subtotal = cantidad * precio;
+                String comentario = txtComentario.getText();
 
-        if (!bebidas.isEmpty()) ImpresionComanda.imprimir(nombreMesa, mesero, bebidas);
-        if (!otros.isEmpty()) ImpresionComanda.imprimir(nombreMesa, mesero, otros);
+                try (Connection conn = MySQLConnection.getConnection()) {
+                    String insert = "INSERT INTO detalle_cuenta (cuenta_id, producto_id, cantidad, subtotal, comentario) VALUES (?, ?, ?, ?, ?)";
+                    PreparedStatement ps = conn.prepareStatement(insert);
 
-        productosSeleccionados.clear();
-    }
+                    for (int i = 0; i < cantidad; i++) {
+                        ps.setInt(1, cuentaId);
+                        ps.setInt(2, productoId);
+                        ps.setInt(3, 1); // siempre 1 por fila
+                        ps.setDouble(4, precio); // precio unitario
+                        ps.setString(5, comentario);
+                        ps.executeUpdate();
+                    }
 
-    private String obtenerNombreProducto(Connection conn, int productoId) throws SQLException {
-        String sql = "SELECT nombre FROM productos WHERE id = ?";
-        PreparedStatement ps = conn.prepareStatement(sql);
-        ps.setInt(1, productoId);
-        ResultSet rs = ps.executeQuery();
-        if (rs.next()) {
-            return rs.getString("nombre");
-        }
-        return "Producto";
+// actualizar total general
+                    String update = "UPDATE cuentas SET total = total + ? WHERE id = ?";
+                    ps = conn.prepareStatement(update);
+                    ps.setDouble(1, subtotal); // cantidad * precio
+                    ps.setInt(2, cuentaId);
+                    ps.executeUpdate();
+
+                    productosSeleccionados.add(new ProductoSeleccionado(nombreProducto + " x" + cantidad, categoria));
+                }
+                dialog.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Error al agregar: " + ex.getMessage());
+            }
+        });
+
+        panel.add(cantidadPanel);
+        panel.add(txtComentario);
+        panel.add(btnAgregar);
+
+        dialog.add(panel, BorderLayout.CENTER);
+        dialog.setVisible(true);
     }
 
     private static class ProductoSeleccionado {

@@ -21,7 +21,12 @@ public class MenuPrincipalFrame extends JFrame {
 
         setTitle("Summa POS - Bienvenido " + nombreUsuario);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
-        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        setMinimumSize(new Dimension(800, 600)); // evitar que se colapse
+        setPreferredSize(new Dimension(1000, 700)); // tamaño por defecto al restaurar
+        setLocationRelativeTo(null);
+
+
+        setLayout(new BorderLayout());
 
         setLayout(new BorderLayout());
 

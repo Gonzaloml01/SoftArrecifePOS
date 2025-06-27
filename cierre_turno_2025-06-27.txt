@@ -1,0 +1,9 @@
+    --- CIERRE DE TURNO ---
+    Usuario: Gonzalo
+    Inicio: 2025-06-18 20:42:33
+    Fondo inicial: $2000.00
+    Ventas: $2495.50
+    Propinas: $0.00
+    Total en caja: $4495.50
+    -------------------------
+    Fecha cierre: 2025-06-27T08:19:04.628495100
