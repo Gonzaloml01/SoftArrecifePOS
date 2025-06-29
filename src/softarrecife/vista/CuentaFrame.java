@@ -621,9 +621,10 @@ public class CuentaFrame extends JFrame {
 
     private void imprimirSoloProductosNuevos() {
         try (Connection conn = MySQLConnection.getConnection()) {
-            String sql = "SELECT p.id, p.nombre, dc.cantidad, p.tipo, dc.comentario "
+            String sql = "SELECT p.id, p.nombre, dc.cantidad, s.nombre AS tipo, dc.comentario "
                     + "FROM detalle_cuenta dc "
                     + "JOIN productos p ON dc.producto_id = p.id "
+                    + "LEFT JOIN subcategorias s ON p.subcategoria_id = s.id "
                     + "WHERE dc.cuenta_id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setInt(1, cuentaId);
@@ -640,12 +641,16 @@ public class CuentaFrame extends JFrame {
 
                 String nombre = rs.getString("nombre");
                 int cantidad = rs.getInt("cantidad");
-                String tipo = rs.getString("tipo");
+                String tipo = rs.getString("tipo"); // ahora es el nombre de la subcategoría
                 String comentario = rs.getString("comentario");
 
                 String linea = String.format("%s x%d", nombre, cantidad);
                 if (comentario != null && !comentario.trim().isEmpty()) {
                     linea += " → " + comentario;
+                }
+
+                if (tipo == null || tipo.isEmpty()) {
+                    tipo = "Otros"; // para no dejar tipo nulo
                 }
 
                 nuevosPorTipo.putIfAbsent(tipo, new ArrayList<>());

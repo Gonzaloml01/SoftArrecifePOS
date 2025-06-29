@@ -79,7 +79,7 @@ public class MenuPrincipalFrame extends JFrame {
         });
 
         btnProductos.addActionListener(e -> new GestionProductosFrame());
-        btnReportes.addActionListener(e -> new ReportesFrame());
+        btnReportes.addActionListener(e -> new ReportesFrame().setVisible(true));
         btnSalir.addActionListener(e -> {
             dispose();
             new LoginFrame();

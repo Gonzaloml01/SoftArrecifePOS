@@ -2,16 +2,13 @@ package softarrecife.vista;
 
 import softarrecife.conexion.MySQLConnection;
 import softarrecife.utils.Estilos;
-import softarrecife.utils.ImpresionComanda;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.*;
 import java.sql.*;
-import java.util.List;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.util.List;
 
 public class SelectorProductoDialog extends JDialog {
 
@@ -35,103 +32,150 @@ public class SelectorProductoDialog extends JDialog {
         panelCategorias.setBorder(new EmptyBorder(10, 10, 10, 10));
         panelCategorias.setBackground(Estilos.grisClaro);
 
-        String[] categorias = {"Bebidas", "Comida", "Postres", "Extras"};
-        for (String cat : categorias) {
-            JButton btn = Estilos.crearBotonPrincipal(cat);
-            btn.addActionListener(e -> mostrarSubcategorias(cat));
-            panelCategorias.add(btn);
-        }
-        add(panelCategorias, BorderLayout.NORTH);
-
         panelCentral = new JPanel();
         cardLayout = new CardLayout();
         panelCentral.setLayout(cardLayout);
         panelCentral.setBackground(Color.WHITE);
+
+        cargarCategorias(panelCategorias);
+
+        add(panelCategorias, BorderLayout.NORTH);
         add(panelCentral, BorderLayout.CENTER);
-
-        crearPanelSubcategorias();
     }
 
-    private void crearPanelSubcategorias() {
-        panelCentral.add(crearPanel("Bebidas", new String[]{
-                "Litros preparados", "Cocteles en copa", "Shots", "Cerveza",
-                "Refrescos", "Jugos naturales", "Smoothies", "Limonadas / Naranjadas"
-        }), "Bebidas");
+    private void cargarCategorias(JPanel panelCategorias) {
+        try (Connection conn = MySQLConnection.getConnection()) {
+            String sql = "SELECT id, nombre FROM categorias";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
 
-        panelCentral.add(crearPanel("Comida", new String[]{
-                "Mariscos", "Antojitos / Tacos", "Hamburguesas", "Botanas", "Ceviches / Tostadas"
-        }), "Comida");
+            while (rs.next()) {
+                int categoriaId = rs.getInt("id");
+                String nombreCategoria = rs.getString("nombre");
 
-        panelCentral.add(crearPanel("Postres", new String[]{
-                "Pasteles", "Helados / Nieves", "Malteadas dulces"
-        }), "Postres");
+                JButton btn = Estilos.crearBotonPrincipal(nombreCategoria);
+                btn.addActionListener(e -> mostrarSubcategorias(nombreCategoria));
+                panelCategorias.add(btn);
 
-        panelCentral.add(crearPanel("Extras", new String[]{
-                "Promociones", "Desayunos", "Eventos especiales"
-        }), "Extras");
+                JPanel subPanel = crearPanelSubcategorias(categoriaId, nombreCategoria);
+                panelCentral.add(subPanel, nombreCategoria);
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al cargar categorías: " + e.getMessage());
+        }
     }
 
-    private JPanel crearPanel(String categoria, String[] subcategorias) {
+    private JPanel crearPanelSubcategorias(int categoriaId, String nombreCategoria) {
         JPanel panel = new JPanel(new GridLayout(0, 3, 12, 12));
         panel.setBorder(new EmptyBorder(20, 20, 20, 20));
         panel.setBackground(Color.WHITE);
 
-        for (String sub : subcategorias) {
-            JButton btn = Estilos.crearBotonSecundario(sub);
-            btn.addActionListener(e -> mostrarProductos(categoria, sub));
-            panel.add(btn);
-        }
-        return panel;
-    }
-
-    private void mostrarSubcategorias(String categoria) {
-        cardLayout.show(panelCentral, categoria);
-    }
-
-    private void mostrarProductos(String categoria, String subcategoria) {
-        JDialog dialogoTipos = new JDialog(this, "Tipos en: " + subcategoria, true);
-        dialogoTipos.setSize(600, 400);
-        dialogoTipos.setLocationRelativeTo(this);
-        dialogoTipos.setLayout(new GridLayout(0, 3, 10, 10));
-
         try (Connection conn = MySQLConnection.getConnection()) {
-            String sql = "SELECT DISTINCT tipo FROM productos WHERE categoria_principal = ? AND subcategoria = ?";
+            String sql = "SELECT id, nombre FROM subcategorias WHERE categoria_id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setString(1, categoria);
-            ps.setString(2, subcategoria);
+            ps.setInt(1, categoriaId);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
-                String tipo = rs.getString("tipo");
-                if (tipo == null || tipo.isBlank()) continue;
+                int subId = rs.getInt("id");
+                String subNombre = rs.getString("nombre");
 
-                JButton btn = Estilos.crearBotonSecundario(tipo);
+                JButton btn = Estilos.crearBotonSecundario(subNombre);
                 btn.addActionListener(e -> {
-                    dialogoTipos.dispose();
-                    mostrarProductosPorTipo(categoria, subcategoria, tipo);
+                    try (Connection c = MySQLConnection.getConnection()) {
+                        String check = "SELECT COUNT(*) FROM subsubcategorias WHERE subcategoria_id = ?";
+                        PreparedStatement ps2 = c.prepareStatement(check);
+                        ps2.setInt(1, subId);
+                        ResultSet rs2 = ps2.executeQuery();
+                        if (rs2.next() && rs2.getInt(1) > 0) {
+                            mostrarSubsubcategorias(subId, subNombre);
+                        } else {
+                            mostrarProductosPorSubcategoria(subId, subNombre);
+                        }
+                    } catch (SQLException ex) {
+                        JOptionPane.showMessageDialog(this, "Error al verificar subsubcategorias: " + ex.getMessage());
+                    }
                 });
-                dialogoTipos.add(btn);
+                panel.add(btn);
             }
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error al cargar tipos: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error al cargar subcategorías: " + e.getMessage());
         }
 
-        dialogoTipos.setVisible(true);
+        return panel;
     }
 
-    private void mostrarProductosPorTipo(String categoria, String subcategoria, String tipo) {
-        JDialog dialogoProductos = new JDialog(this, "Productos: " + tipo, true);
+    private void mostrarSubcategorias(String nombreCategoria) {
+        try (Connection conn = MySQLConnection.getConnection()) {
+            String getIdSql = "SELECT id FROM categorias WHERE nombre = ?";
+            PreparedStatement getIdPs = conn.prepareStatement(getIdSql);
+            getIdPs.setString(1, nombreCategoria);
+            ResultSet idRs = getIdPs.executeQuery();
+
+            if (idRs.next()) {
+                int categoriaId = idRs.getInt("id");
+
+                JPanel nuevoPanel = crearPanelSubcategorias(categoriaId, nombreCategoria);
+                panelCentral.add(nuevoPanel, nombreCategoria);
+                cardLayout.show(panelCentral, nombreCategoria);
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al mostrar subcategorías: " + e.getMessage());
+        }
+    }
+
+    private void mostrarSubsubcategorias(int subcategoriaId, String nombreSubcategoria) {
+        try (Connection conn = MySQLConnection.getConnection()) {
+            String sql = "SELECT id, nombre FROM subsubcategorias WHERE subcategoria_id = ?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, subcategoriaId);
+            ResultSet rs = ps.executeQuery();
+
+            List<JButton> botones = new ArrayList<>();
+            JDialog dialogoSubsub = new JDialog(this, "Seleccionar tipo en: " + nombreSubcategoria, true);
+            dialogoSubsub.setSize(600, 400);
+            dialogoSubsub.setLocationRelativeTo(this);
+            dialogoSubsub.setLayout(new GridLayout(0, 3, 10, 10));
+
+            while (rs.next()) {
+                int subsubId = rs.getInt("id");
+                String subsubNombre = rs.getString("nombre");
+
+                JButton btn = Estilos.crearBotonSecundario(subsubNombre);
+                btn.addActionListener(e -> {
+                    dialogoSubsub.dispose();
+                    mostrarProductosPorSubsubcategoria(subsubId, subsubNombre);
+                });
+
+                botones.add(btn);
+                dialogoSubsub.add(btn);
+            }
+
+            if (botones.isEmpty()) {
+                // No hay subsubcategorías, mostrar productos directamente
+                mostrarProductosPorSubcategoria(subcategoriaId, nombreSubcategoria);
+            } else {
+                dialogoSubsub.setVisible(true);
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al cargar sub-subcategorías: " + e.getMessage());
+        }
+    }
+
+    private void mostrarProductosPorSubsubcategoria(int subsubId, String titulo) {
+        JDialog dialogoProductos = new JDialog(this, "Productos: " + titulo, true);
         dialogoProductos.setSize(800, 600);
         dialogoProductos.setLocationRelativeTo(this);
         dialogoProductos.setLayout(new GridLayout(0, 3, 10, 10));
 
         try (Connection conn = MySQLConnection.getConnection()) {
-            String sql = "SELECT id, nombre, precio FROM productos WHERE categoria_principal = ? AND subcategoria = ? AND tipo = ?";
+            String sql = "SELECT id, nombre, precio FROM productos WHERE subsubcategoria_id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setString(1, categoria);
-            ps.setString(2, subcategoria);
-            ps.setString(3, tipo);
+            ps.setInt(1, subsubId);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
@@ -141,7 +185,7 @@ public class SelectorProductoDialog extends JDialog {
 
                 JButton btn = Estilos.crearBotonProducto(
                         nombre + "<br>$" + precio,
-                        e -> abrirDialogoCantidadYComentario(idProd, precio, categoria, nombre)
+                        e -> abrirDialogoCantidadYComentario(idProd, precio, titulo, nombre)
                 );
 
                 dialogoProductos.add(btn);
@@ -163,7 +207,6 @@ public class SelectorProductoDialog extends JDialog {
         JPanel panel = new JPanel(new GridLayout(3, 1, 10, 10));
         panel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // Cantidad
         JPanel cantidadPanel = new JPanel(new FlowLayout());
         JLabel lblCantidad = new JLabel("Cantidad:");
         JTextField txtCantidad = new JTextField("1", 3);
@@ -187,11 +230,9 @@ public class SelectorProductoDialog extends JDialog {
         cantidadPanel.add(txtCantidad);
         cantidadPanel.add(btnMas);
 
-        // Comentario
         JTextField txtComentario = new JTextField();
         txtComentario.setBorder(BorderFactory.createTitledBorder("Comentario (opcional)"));
 
-        // Botón agregar
         JButton btnAgregar = new JButton("Agregar a cuenta");
         btnAgregar.addActionListener(e -> {
             try {
@@ -206,16 +247,15 @@ public class SelectorProductoDialog extends JDialog {
                     for (int i = 0; i < cantidad; i++) {
                         ps.setInt(1, cuentaId);
                         ps.setInt(2, productoId);
-                        ps.setInt(3, 1); // siempre 1 por fila
-                        ps.setDouble(4, precio); // precio unitario
+                        ps.setInt(3, 1);
+                        ps.setDouble(4, precio);
                         ps.setString(5, comentario);
                         ps.executeUpdate();
                     }
 
-// actualizar total general
                     String update = "UPDATE cuentas SET total = total + ? WHERE id = ?";
                     ps = conn.prepareStatement(update);
-                    ps.setDouble(1, subtotal); // cantidad * precio
+                    ps.setDouble(1, subtotal);
                     ps.setInt(2, cuentaId);
                     ps.executeUpdate();
 
@@ -236,6 +276,7 @@ public class SelectorProductoDialog extends JDialog {
     }
 
     private static class ProductoSeleccionado {
+
         String nombre;
         String categoria;
 
@@ -243,5 +284,37 @@ public class SelectorProductoDialog extends JDialog {
             this.nombre = nombre;
             this.categoria = categoria;
         }
+    }
+
+    private void mostrarProductosPorSubcategoria(int subId, String titulo) {
+        JDialog dialogoProductos = new JDialog(this, "Productos: " + titulo, true);
+        dialogoProductos.setSize(800, 600);
+        dialogoProductos.setLocationRelativeTo(this);
+        dialogoProductos.setLayout(new GridLayout(0, 3, 10, 10));
+
+        try (Connection conn = MySQLConnection.getConnection()) {
+            String sql = "SELECT id, nombre, precio FROM productos WHERE subcategoria_id = ?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, subId);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                int idProd = rs.getInt("id");
+                String nombre = rs.getString("nombre");
+                double precio = rs.getDouble("precio");
+
+                JButton btn = Estilos.crearBotonProducto(
+                        nombre + "<br>$" + precio,
+                        e -> abrirDialogoCantidadYComentario(idProd, precio, titulo, nombre)
+                );
+
+                dialogoProductos.add(btn);
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al cargar productos: " + e.getMessage());
+        }
+
+        dialogoProductos.setVisible(true);
     }
 }
