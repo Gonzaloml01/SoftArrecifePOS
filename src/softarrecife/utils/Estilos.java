@@ -5,6 +5,7 @@ import javax.swing.border.*;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.net.URL;
 
 public class Estilos {
 
@@ -277,10 +278,19 @@ public class Estilos {
         }
     }
 
-    public static Icon cargarIcono(String ruta, int ancho, int alto) {
-        ImageIcon iconoOriginal = new ImageIcon(ruta);
-        Image imagenEscalada = iconoOriginal.getImage().getScaledInstance(ancho, alto, Image.SCALE_SMOOTH);
-        return new ImageIcon(imagenEscalada);
+ public static Icon cargarIcono(String ruta, int ancho, int alto) {
+    try {
+        URL url = Estilos.class.getResource(ruta);
+        if (url == null) {
+            System.err.println("No se encontró el recurso: " + ruta);
+            return null;
+        }
+        ImageIcon icono = new ImageIcon(url);
+        Image imagen = icono.getImage().getScaledInstance(ancho, alto, Image.SCALE_SMOOTH);
+        return new ImageIcon(imagen);
+    } catch (Exception e) {
+        e.printStackTrace();
+        return null;
     }
-
+}
 }

@@ -47,22 +47,22 @@ public class MenuPrincipalFrame extends JFrame {
         panelBotones.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
         // Botones
-        Icon iconTurno = Estilos.cargarIcono("src/softarrecife/recursos/turno.png", 55, 55);
+        Icon iconTurno = Estilos.cargarIcono("/softarrecife/recursos/turno.png", 55, 55);
         JButton btnTurno = Estilos.crearBotonModerno("Turno", iconTurno);
 
-        Icon iconComedor = Estilos.cargarIcono("src/softarrecife/recursos/comedor.png", 55, 55);
+        Icon iconComedor = Estilos.cargarIcono("/softarrecife/recursos/comedor.png", 55, 55);
         JButton btnComedor = Estilos.crearBotonModerno("Comedor", iconComedor);
 
-        Icon iconProductos = Estilos.cargarIcono("src/softarrecife/recursos/productos.png", 55, 55);
+        Icon iconProductos = Estilos.cargarIcono("/softarrecife/recursos/productos.png", 55, 55);
         JButton btnProductos = Estilos.crearBotonModerno("Productos", iconProductos);
 
-        Icon iconReportes = Estilos.cargarIcono("src/softarrecife/recursos/reportes.png", 55, 55);
+        Icon iconReportes = Estilos.cargarIcono("/softarrecife/recursos/reportes.png", 55, 55);
         JButton btnReportes = Estilos.crearBotonModerno("Reportes", iconReportes);
 
-        Icon iconSalir = Estilos.cargarIcono("src/softarrecife/recursos/cerrar.png", 55, 55);
+        Icon iconSalir = Estilos.cargarIcono("/softarrecife/recursos/cerrar.png", 55, 55);
         JButton btnSalir = Estilos.crearBotonModerno("Cerrar Sesion", iconSalir);
 
-        Icon iconGastos = Estilos.cargarIcono("src/softarrecife/recursos/gasto.png", 55, 55);
+        Icon iconGastos = Estilos.cargarIcono("/softarrecife/recursos/gasto.png", 55, 55);
         JButton btnGastos = Estilos.crearBotonModerno("Registrar gasto", iconGastos);
 
         btnGastos.addActionListener(e -> new gastos(usuarioId, nombreUsuario).setVisible(true));
